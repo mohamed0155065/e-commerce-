@@ -7,7 +7,7 @@ export default async function HomePage() {
   return (
     <div className="container mx-auto p-10">
       <h1 className="text-3xl font-bold mb-8 text-center uppercase tracking-widest text-orange-600">
-        Our Shop
+        Marketly
       </h1>
 
       {products.length === 0 ? (

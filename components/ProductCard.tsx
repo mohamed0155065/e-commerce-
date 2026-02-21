@@ -1,51 +1,57 @@
-// components/ProductCard.tsx
-import Image from 'next/image';
-import { product } from '@/types';
+"use client"; // Required for using hooks and client-side state (Zustand)
 
-interface ProductCardProps {
-    product: product;
-}
+import { Product } from "@/types";
+import { useCartStore } from "@/store/useCartStore";
 
-export const ProductCard = ({ product }: ProductCardProps) => {
+/**
+ * ProductCard Component
+ *
+ * Displays product information and provides
+ * an action to add the product to the cart.
+ *
+ * This is a Client Component because it:
+ * - Uses Zustand (client-side state)
+ * - Handles user interactions (onClick)
+ */
+export const ProductCard = ({ product }: { product: Product }) => {
+
+    /**
+     * Selects the addItem action from the cart store.
+     * Using selector pattern prevents unnecessary re-renders.
+     */
+    const addItem = useCartStore((state) => state.addItem);
+
     return (
-        <div className="bg-white rounded-xl shadow-md ...">
-            <div className="relative h-48 w-full bg-gray-200">
-                {/* تعديل Image و Name هنا */}
-                {product.Image ? (
-                    <Image
-                        src={product.Image}
-                        alt={product.Name}
-                        fill
-                        className="object-cover"
-                        sizes="..."
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                        No Image
-                    </div>
-                )}
-            </div>
+        <div className="border p-4 rounded-lg shadow-sm hover:shadow-md transition bg-white">
 
-            <div className="p-4">
-                {/* تعديل Name هنا */}
-                <h3 className="text-lg font-semibold text-gray-800 mb-2 truncate">
-                    {product.Name}
-                </h3>
+            {/* Product Image */}
+            {/* object-cover ensures the image fills the container without distortion */}
+            <img
+                src={product.Image}
+                alt={product.Name}
+                className="w-full h-48 object-cover rounded"
+            />
 
-                {/* تعديل Description هنا */}
-                <p className="text-sm text-gray-600 line-clamp-2 mb-4">
-                    {product.Description}
-                </p>
+            {/* Product Name */}
+            <h2 className="font-bold mt-2 text-lg">
+                {product.Name}
+            </h2>
 
-                <div className="flex justify-between items-center">
-                    {/* تعديل Price هنا */}
-                    <span className="text-orange-600 font-bold text-xl">
-                        ${product.Price}
-                    </span>
-                    <button className="px-3 py-1 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition">
-                        Add to Cart
-                    </button>
-                </div>
+            <div className="flex justify-between items-center mt-4">
+
+                {/* Product Price */}
+                <span className="text-orange-600 font-bold text-xl">
+                    ${product.Price}
+                </span>
+
+                {/* Add to Cart Button */}
+                {/* Triggers addItem from Zustand store */}
+                <button
+                    onClick={() => addItem(product)}
+                    className="bg-black text-white px-4 py-2 rounded-lg hover:bg-orange-600 active:scale-95 transition"
+                >
+                    Add to Cart
+                </button>
             </div>
         </div>
     );

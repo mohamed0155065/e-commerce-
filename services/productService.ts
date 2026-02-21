@@ -1,14 +1,14 @@
 import { supabase } from '@/lib/supabase';
-import type { product } from '@/types';
+import type { Product } from '@/types';
 
 const TABLE_NAME = 'product';
 
-export async function getProducts(): Promise<product[]> {
+export async function getProducts(): Promise<Product[]> {
     try {
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .select(`id,created_at,Name,Price,Description,Image`)
-            .returns<product[]>();
+            .returns<Product[]>();
 
         if (error) {
             throw new Error(error.message);
