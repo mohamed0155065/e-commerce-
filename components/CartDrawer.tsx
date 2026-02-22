@@ -10,7 +10,7 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             {isOpen && (
                 <div className="fixed inset-0 bg-black/50 z-[100] backdrop-blur-sm" onClick={onClose} />
             )}
-
+            l
 
             <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white z-[101] shadow-xl transform transition-transform duration-300 ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
                 <div className="p-6 flex flex-col h-full">
@@ -32,7 +32,16 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                                         <h3 className="font-bold">{item.Name}</h3>
                                         <p className="text-orange-600">${item.Price}</p>
                                         <div className="flex items-center gap-3 mt-2">
+                                            <div className="flex items-center  border rounded-md px-2 py-1 gap-3">
+                                                <button onClick={() => removeItem(item.id)} className="text-gray-500 hover:text-red-600">
+                                                    {item.quantity === 1 ? <Trash2 size={16} /> : <Minus size={16} />}
+                                                </button>
+                                                <span>{item.quantity}</span>
+                                                <button onClick={() => addItem(item)} className="text-gray-500 hover:text-orange-600">
 
+                                                    < Plus size={16} />
+                                                </button>
+                                            </div>
                                             <span className="text-sm font-medium">Qty: {item.quantity}</span>
                                         </div>
                                     </div>

@@ -11,10 +11,10 @@ export const Navbar = () => {
     return (
         <nav className="border-b p-4 sticky top-0 bg-white z-[50]">
             <div className="container mx-auto flex justify-between items-center">
-                <h1 className="text-2xl font-black italic text-orange-600">PRO-STORE</h1>
+                <h1 className="text-2xl font-black italic text-orange-600">Marketly</h1>
 
                 <button
-                    onClick={() => setIsCartOpen(true)} // لما يدوس يفتح
+                    onClick={() => setIsCartOpen(true)}
                     className="relative p-2"
                 >
                     <ShoppingCart />
