@@ -48,7 +48,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
                 {/* Triggers addItem from Zustand store */}
                 <button
                     onClick={() => addItem(product)}
-                    className="bg-black text-white px-4 py-2 rounded-lg hover:bg-orange-600 active:scale-95 transition"
+                    className="bg-black text-white px-4 py-2 rounded-lg hover:bg-red-600 active:scale-95 transition"
                 >
                     Add to Cart
                 </button>
