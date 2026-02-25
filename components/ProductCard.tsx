@@ -2,7 +2,7 @@
 
 import { Product } from "@/types";
 import { useCartStore } from "@/store/useCartStore";
-
+import Link from "next/link";
 /**
  * ProductCard Component
  *
@@ -26,16 +26,19 @@ export const ProductCard = ({ product }: { product: Product }) => {
 
             {/* Product Image */}
             {/* object-cover ensures the image fills the container without distortion */}
-            <img
-                src={product.Image}
-                alt={product.Name}
-                className="w-full h-48 object-cover rounded"
-            />
 
-            {/* Product Name */}
-            <h2 className="font-bold mt-2 text-lg">
-                {product.Name}
-            </h2>
+            <Link href={`/product/${product.id}`}>
+                <img
+                    src={product.Image}
+                    alt={product.Name}
+                    className="w-full h-48 object-cover rounded"
+                />
+
+                {/* Product Name */}
+                <h2 className="font-bold mt-2 text-lg">
+                    {product.Name}
+                </h2></Link>
+
 
             <div className="flex justify-between items-center mt-4">
 
