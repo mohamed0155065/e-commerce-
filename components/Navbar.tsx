@@ -26,7 +26,6 @@ export const Navbar = () => {
                 </button>
             </div>
 
-            {/* بننادي اللوحة هنا ونبعت لها الحالة */}
             <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
         </nav>
     );

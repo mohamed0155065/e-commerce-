@@ -5,12 +5,27 @@ const TABLE_NAME = "product";
 
 export const productService = {
     // 🔹 Get All Products
-    async getAll(): Promise<Product[]> {
+    async getAll(
+        search?: string,
+        category?: string
+    ): Promise<Product[]> {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from(TABLE_NAME)
                 .select("id, created_at, Name, Price, Description, Image")
-                .returns<Product[]>();
+
+
+            // 🔍 Search
+            if (search) {
+                query = query.filter('Name', 'ilike', `%${search}%`);
+            }
+
+            // 🏷 Category
+            if (category && category !== "All") {
+                query = query.filter('Category', 'eq', category)
+            }
+
+            const { data, error } = await query.returns<Product[]>();
 
             if (error) throw new Error(error.message);
 
@@ -29,9 +44,9 @@ export const productService = {
                 .select("id, created_at, Name, Price, Description, Image")
                 .eq("id", id)
                 .maybeSingle()
-                .returns<Product>()
+                .returns<Product>();
+
             if (error) {
-                // لو المنتج مش موجود Supabase بيرجع error
                 if (error.code === "PGRST116") return null;
                 throw new Error(error.message);
             }
