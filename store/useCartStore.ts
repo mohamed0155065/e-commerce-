@@ -92,10 +92,25 @@ export const useCartStore = create<CartState>()(
              * Removes a specific item from the cart.
              * Uses filter to maintain immutability.
              */
-            removeItem: (id) =>
-                set({
-                    items: get().items.filter((i) => i.id !== id)
-                }),
+            removeItem: (id: string) => {
+                const currentItems = get().items;
+                const existingItem = currentItems.find(item => item.id === id);
+
+                if (existingItem && existingItem.quantity > 1) {
+                    // 1. لو الكمية أكبر من 1، نقص 1 بس
+                    set({
+                        items: currentItems.map(item =>
+                            item.id === id ? { ...item, quantity: item.quantity - 1 } : item
+                        ),
+                    });
+                } else {
+                    // 2. لو الكمية 1 أو المنتج مش موجود، احذفه تماماً
+                    set({
+                        items: currentItems.filter(item => item.id !== id),
+                    });
+                }
+            },
+
 
             /**
              * Clears the cart completely.

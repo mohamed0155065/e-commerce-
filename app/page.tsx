@@ -1,45 +1,55 @@
-import { productService } from '@/services/productService';
-import { ProductCard } from '@/components/ProductCard';
-import { SearchBar } from '@/components/SearchBar';
+import { productService } from "@/services/productService";
+import { ProductCard } from "@/components/ProductCard";
+import { SearchBar } from "@/components/SearchBar";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: { query?: string };
-}) {
-  // 1️⃣ نقرأ كلمة البحث من الـ URL
-  const query = searchParams.query;
+export const dynamic = "force-dynamic";
 
-  // 2️⃣ نجيب المنتجات على حسب البحث
+export default async function HomePage({ searchParams }: any) {
+  const { query } = await searchParams;
   const products = await productService.getAll(query);
 
   return (
-    <div className="container mx-auto p-10">
-      <h1 className="text-3xl font-bold mb-6 text-center uppercase tracking-widest text-orange-600">
-        Marketly
-      </h1>
 
-      {/* 3️⃣ Search Bar */}
-      <div className="mb-10 flex justify-center">
-        <SearchBar />
-      </div>
+    <main className="min-h-screen">
 
-      {/* 4️⃣ عرض النتائج */}
-      {products.length === 0 ? (
-        <div className="text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed">
-          <p className="text-gray-500 text-lg italic">
-            {query
-              ? `لا توجد منتجات تطابق "${query}"`
-              : null}
+      {/* New Airy Hero */}
+      <section className="relative py-16 lg:py-24 overflow-hidden">
+        <div className="container mx-auto px-6 text-center">
+          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold uppercase tracking-widest text-violet-600 bg-violet-50 rounded-full">
+            The Best 2025 Collection
+          </span>
+          <h1 className="text-5xl lg:text-7xl font-black text-slate-900 mb-6 tracking-tight">
+            Find everything you <br />
+            <span className="text-violet-600">love right here.</span>
+          </h1>
+          <p className="max-w-xl mx-auto text-slate-500 text-lg mb-10 font-medium leading-relaxed">
+            High quality products, affordable prices, and fast delivery to your door.
           </p>
+
+          {/* البحث في الموبايل بس */}
+          <div className="lg:hidden max-w-md mx-auto mb-10">
+            <SearchBar />
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 -z-10 w-64 h-64 bg-violet-100/50 blur-[100px] rounded-full" />
+        <div className="absolute bottom-0 right-0 -z-10 w-64 h-64 bg-amber-100/50 blur-[100px] rounded-full" />
+      </section>
+
+      {/* Product Feed */}
+      <section className="container mx-auto px-6 pb-24">
+        <div className="flex items-center gap-4 mb-12">
+          <h2 className="text-2xl font-black text-slate-900">Featured Products</h2>
+          <div className="h-px bg-slate-200 flex-1"></div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {products.map((p) => (
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
-      )}
-    </div>
+      </section>
+    </main>
   );
 }
