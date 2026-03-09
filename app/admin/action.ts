@@ -46,7 +46,14 @@ export async function addProductAction(prevState: ActionState | null, formData: 
         // Validate form data against schema
         const result = productSchema.safeParse(rawData);
         if (!result.success) {
-            return { success: false, message: result.error.errors[0].message };
+            if (!result.success) {
+
+                return {
+                    success: false,
+                    message: result.error.issues[0].message
+                };
+            }
+
         }
 
         const validated = result.data;
