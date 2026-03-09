@@ -9,6 +9,7 @@ import { Product } from "@/types";
 interface PageProps {
     params: Promise<{ id: string }>;
 }
+export const dynamic = 'force-dynamic';
 
 /**
  * ProductPage component
