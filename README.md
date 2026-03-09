@@ -5,7 +5,7 @@ The goal of this project is not simply to create an online store, but to demonst
 
 This project focuses on clean system structure, reliable data validation, and efficient communication between the frontend and backend.
 
-Live Demo: 
+Live Demo: https://e-commerce-v7pt.vercel.app/
 
 ---
 
