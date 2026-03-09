@@ -10,15 +10,23 @@ import {
     ImageIcon,
 } from "lucide-react";
 
+/**
+ * AddProductForm Component
+ * - Provides a form to add a new product to the store
+ * - Handles image preview, form submission, and feedback messages
+ * - Integrates with server action `addProductAction`
+ */
 export default function AddProductForm() {
-    const initialState = {
-        success: false,
-        message: "",
-    };
+    // Initial state for action feedback
+    const initialState = { success: false, message: "" };
+
+    // useActionState: [state, formAction, isPending]
     const [state, formAction, isPending] = useActionState(
         addProductAction,
         initialState
     );
+
+    // Preview URL for uploaded image
     const [preview, setPreview] = useState<string | null>(null);
 
     return (
@@ -36,7 +44,7 @@ export default function AddProductForm() {
 
             <form action={formAction} className="space-y-8">
 
-                {/* Basic Info */}
+                {/* Product Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
@@ -45,7 +53,7 @@ export default function AddProductForm() {
                         <input
                             name="name"
                             required
-                            placeholder="MacBook Pro M3"
+
                             className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                         />
                     </div>
@@ -59,8 +67,8 @@ export default function AddProductForm() {
                             required
                             type="number"
                             step="0.01"
-                            placeholder="1999.00"
-                            className="w-full p-4 rounded-xl border  text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+
+                            className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -73,8 +81,8 @@ export default function AddProductForm() {
                     <textarea
                         name="description"
                         required
-                        placeholder="Full product description..."
-                        className="w-full p-4 h-32 rounded-xl border  text-taupe-950 border-slate-200 resize-none focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+
+                        className="w-full p-4 h-32 rounded-xl border text-taupe-950 border-slate-200 resize-none focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                     />
                 </div>
 
@@ -84,8 +92,7 @@ export default function AddProductForm() {
                         Product Image
                     </label>
 
-                    <div className="relative group border-2 border-dashed  border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:border-indigo-600 transition-all cursor-pointer">
-
+                    <div className="relative group border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:border-indigo-600 transition-all cursor-pointer">
                         <input
                             name="image"
                             type="file"
@@ -94,9 +101,7 @@ export default function AddProductForm() {
                             className="absolute inset-0 opacity-0 cursor-pointer"
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) {
-                                    setPreview(URL.createObjectURL(file));
-                                }
+                                if (file) setPreview(URL.createObjectURL(file));
                             }}
                         />
 
@@ -120,7 +125,7 @@ export default function AddProductForm() {
                     </div>
                 </div>
 
-                {/* Feedback */}
+                {/* Feedback Message */}
                 {state?.message && (
                     <div
                         className={`p-4 rounded-xl flex items-center gap-3 text-sm font-semibold ${state.success
@@ -128,11 +133,7 @@ export default function AddProductForm() {
                             : "bg-red-50 text-red-700"
                             }`}
                     >
-                        {state.success ? (
-                            <CheckCircle2 size={18} />
-                        ) : (
-                            <AlertCircle size={18} />
-                        )}
+                        {state.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                         {state.message}
                     </div>
                 )}

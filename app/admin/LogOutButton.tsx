@@ -3,12 +3,20 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
+/**
+ * LogoutButton component
+ * - Signs the user out from Supabase
+ * - Redirects to the admin login page
+ * - Refreshes the router to clear any cached data
+ */
 export default function LogoutButton() {
     const router = useRouter();
 
     const logout = async () => {
+        // Sign the user out
         await supabase.auth.signOut();
 
+        // Redirect to login page and refresh router
         router.push("/admin/login");
         router.refresh();
     };

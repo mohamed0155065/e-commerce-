@@ -25,6 +25,8 @@ interface CartState {
 
     /**
      * Removes a product from the cart by its id.
+     * - If the item's quantity > 1, decrement by 1.
+     * - If quantity = 1, remove it entirely.
      */
     removeItem: (id: string) => void;
 
@@ -48,98 +50,81 @@ interface CartState {
  * useCartStore
  *
  * Zustand store responsible for managing shopping cart state.
- * The state is persisted in localStorage using Zustand's persist middleware.
+ * State is persisted in localStorage using Zustand's persist middleware.
  */
 export const useCartStore = create<CartState>()(
     persist(
         (set, get) => ({
-            /**
-             * Initial cart state
-             */
+            // Initial cart state
             items: [],
 
+            /**
+             * Add a product to the cart.
+             * - Checks if the product already exists.
+             * - If yes, increments quantity.
+             * - If not, adds a new CartItem with quantity = 1.
+             */
             addItem: (product) => {
-                // Get current snapshot of cart items
                 const currentItems = get().items;
-
-                // Check if product already exists in cart
-                const existingItem = currentItems.find(
-                    item => item.id === product.id
-                );
+                const existingItem = currentItems.find(item => item.id === product.id);
 
                 if (existingItem) {
-                    // If product exists, create a new array
-                    // and increment the quantity of the matching item
+                    // Increment quantity of existing item
                     const updatedItems = currentItems.map(item =>
                         item.id === product.id
                             ? { ...item, quantity: item.quantity + 1 }
                             : item
                     );
-
                     set({ items: updatedItems });
                 } else {
-                    // If product does not exist, add it with quantity = 1
+                    // Add new item with quantity = 1
                     set({
-                        items: [
-                            ...currentItems,
-                            { ...product, quantity: 1 }
-                        ]
+                        items: [...currentItems, { ...product, quantity: 1 }]
                     });
                 }
             },
 
             /**
-             * Removes a specific item from the cart.
-             * Uses filter to maintain immutability.
+             * Remove a product from the cart.
+             * - If quantity > 1, decrement quantity by 1.
+             * - If quantity = 1, remove the item completely.
              */
             removeItem: (id: string) => {
                 const currentItems = get().items;
                 const existingItem = currentItems.find(item => item.id === id);
 
                 if (existingItem && existingItem.quantity > 1) {
-                    // 1. لو الكمية أكبر من 1، نقص 1 بس
                     set({
                         items: currentItems.map(item =>
                             item.id === id ? { ...item, quantity: item.quantity - 1 } : item
                         ),
                     });
                 } else {
-                    // 2. لو الكمية 1 أو المنتج مش موجود، احذفه تماماً
                     set({
                         items: currentItems.filter(item => item.id !== id),
                     });
                 }
             },
 
-
             /**
              * Clears the cart completely.
              */
-            clearCart: () =>
-                set({ items: [] }),
+            clearCart: () => set({ items: [] }),
 
             /**
-             * Calculates total quantity of items in the cart.
+             * Returns total quantity of items in the cart.
              */
             getTotalItems: () =>
-                get().items.reduce(
-                    (acc, item) => acc + item.quantity,
-                    0
-                ),
+                get().items.reduce((acc, item) => acc + item.quantity, 0),
 
             /**
-             * Calculates total price of all cart items.
+             * Returns total price of all items in the cart.
              */
             getTotalPrice: () =>
-                get().items.reduce(
-                    (acc, item) => acc + (item.Price * item.quantity),
-                    0
-                ),
+                get().items.reduce((acc, item) => acc + (item.Price * item.quantity), 0),
         }),
         {
-            /**
-             * Storage key used in localStorage.
-             */
+            // Storage key in localStorage for persistence
             name: 'shopping-cart'
         }
     )
