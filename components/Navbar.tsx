@@ -27,10 +27,6 @@ export const Navbar = () => {
                     </span>
                 </Link>
 
-                {/* Desktop Search */}
-                <div className="hidden lg:flex flex-1 max-w-md mx-8">
-                    <SearchBar />
-                </div>
 
                 {/* Cart Button */}
                 <div className="flex items-center gap-4">

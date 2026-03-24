@@ -99,7 +99,10 @@ export default async function HomePage({
             Premium quality products with express delivery to your doorstep.
           </p>
 
-
+          {/* Search bar — full width on mobile, constrained on desktop */}
+          <div className="max-w-lg mx-auto">
+            <SearchBar />
+          </div>
 
           {/* Quick stats row */}
           <div className="
