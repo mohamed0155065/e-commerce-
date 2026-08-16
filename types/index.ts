@@ -1,12 +1,11 @@
-import { productService } from './../services/productService';
 export interface Product {
     id: string
     Name: string
     Image: string
     Price: number
-    Category: string
+    Category?: string
     Description: string
-    Stock: number
+    Stock?: number
     Rating?: number
 }
 export interface Category {
