@@ -15,7 +15,7 @@ export const productService = {
             // Base query selecting necessary fields
             let query = supabase
                 .from(TABLE_NAME)
-                .select("id, created_at, Name, Price, Description, Image");
+                .select("id, created_at, Name, Price, Description, Image, Category, Stock, Rating");
 
             // Apply search filter if provided
             if (search) {
@@ -48,7 +48,7 @@ export const productService = {
         try {
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .select("id, created_at, Name, Price, Description, Image")
+                .select("id, created_at, Name, Price, Description, Image, Category, Stock, Rating")
                 .eq("id", id)
                 .maybeSingle() // Return single object or null
                 .returns<Product>();

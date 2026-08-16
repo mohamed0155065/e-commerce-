@@ -1,50 +1,6 @@
 "use client";
-
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
-
-/**
- * SuccessPage component
- * - Displays order confirmation after checkout
- * - Triggers confetti animation on mount
- * - Provides a button to navigate back to the store
- */
-export default function SuccessPage() {
-    // Run confetti animation when the component mounts
-    useEffect(() => {
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#7c3aed', '#c4b5fd'], // Brand violet colors
-        });
-    }, []);
-
-    return (
-        <div className="h-screen flex flex-col items-center justify-center text-center px-6">
-
-            {/* Success Icon */}
-            <div className="bg-violet-50 p-6 rounded-full mb-6 text-violet-600">
-                <CheckCircle2 size={80} />
-            </div>
-
-            {/* Heading */}
-            <h1 className="text-4xl font-black mb-4">Order Confirmed!</h1>
-
-            {/* Message */}
-            <p className="text-slate-500 mb-8 max-w-sm">
-                Your items are being prepared. We'll send you an email soon.
-            </p>
-
-            {/* Back to Store Button */}
-            <Link
-                href="/"
-                className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold shadow-xl"
-            >
-                Back to Store
-            </Link>
-        </div>
-    );
-}
+import { Check } from "lucide-react";
+export default function SuccessPage() { useEffect(() => { confetti({ particleCount: 80, spread: 55, origin: { y: .55 }, colors: ["#285943", "#e6ad42", "#f7f7f4"] }); }, []); return <main className="page-shell grid min-h-[calc(100vh-4rem)] place-items-center text-center"><section className="max-w-md"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#e1eee5] text-[#23734d]"><Check size={28}/></div><p className="eyebrow mt-6">Order received</p><h1 className="mt-2 text-4xl font-semibold tracking-[-.06em]">Thank you.</h1><p className="mt-4 text-sm leading-6 text-stone-600">Your order is being prepared. We’ll be in touch with delivery updates shortly.</p><Link href="/" className="mt-8 inline-block bg-[#285943] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1d4534]">Return to shop</Link></section></main>; }

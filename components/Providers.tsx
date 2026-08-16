@@ -14,7 +14,7 @@ import { Toaster } from "sonner";
 export default function Providers({ children }: { children: React.ReactNode }) {
     const [mounted, setMounted] = useState(false);
 
-    // 🔒 Hydration Shield: 
+    // Hydration Shield: 
     // Prevents the "Hydration Mismatch" error by waiting for the client to mount
     // before rendering client-specific logic (like the shopping cart state).
     useEffect(() => {

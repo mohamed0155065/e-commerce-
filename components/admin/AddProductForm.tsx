@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { addProductAction } from "@/app/admin/action";
 import {
     Upload,
@@ -9,7 +9,7 @@ import {
     CheckCircle2,
     ImageIcon,
 } from "lucide-react";
-
+import Image from "next/image";
 /**
  * AddProductForm Component
  * - Provides a form to add a new product to the store
@@ -28,6 +28,12 @@ export default function AddProductForm() {
 
     // Preview URL for uploaded image
     const [preview, setPreview] = useState<string | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (preview) URL.revokeObjectURL(preview);
+        };
+    }, [preview]);
 
     return (
         <div className="w-full max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-[2rem] border border-slate-200 shadow-sm">
@@ -106,7 +112,7 @@ export default function AddProductForm() {
                         />
 
                         {preview ? (
-                            <img
+                            <Image
                                 src={preview}
                                 alt="Preview"
                                 className="h-40 object-contain rounded-xl"
