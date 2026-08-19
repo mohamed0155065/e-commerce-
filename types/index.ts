@@ -6,6 +6,10 @@ export interface Product {
     Category?: string
     Description: string
     Stock?: number
+    Status?: "active" | "inactive"
+    Slug?: string
+    created_at?: string
+    updated_at?: string
     Rating?: number
 }
 export interface Category {

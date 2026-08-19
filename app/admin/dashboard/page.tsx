@@ -2,7 +2,23 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 import AddProductForm from "@/components/admin/AddProductForm";
 import SalesChart from "./Chart";
+import AdminProductsList from "@/components/admin/AdminProductsList";
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() { const supabase = await supabaseServer(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect("/login"); const { data: orders } = await supabase.from("orders").select("*").order("created_at", { ascending: false }); const totalRevenue = orders?.reduce((sum, order) => sum + (order.totalPrice || 0), 0) || 0; const totalOrders = orders?.length || 0; const chartData = orders?.slice(0, 6).reverse().map((order) => ({ name: order.full_name?.split(" ")[0] || "Customer", amount: order.totalPrice })) || [];
-return <div className="min-h-screen bg-[#f7f7f4] py-10"><div className="page-shell max-w-6xl"><p className="eyebrow">Marketly administration</p><div className="mt-2 flex flex-wrap items-end justify-between gap-4 border-b border-stone-300 pb-7"><div><h1 className="text-3xl font-semibold tracking-[-.055em]">Store overview</h1><p className="mt-2 text-sm text-stone-600">A concise view of current store activity.</p></div><p className="text-xs text-stone-500">Signed in as {user.email}</p></div><div className="mt-8 grid gap-px border border-stone-200 bg-stone-200 sm:grid-cols-2"><section className="bg-white p-6"><p className="eyebrow">Total sales</p><p className="mt-3 text-3xl font-semibold tracking-[-.05em]">${totalRevenue.toLocaleString()}</p></section><section className="bg-white p-6"><p className="eyebrow">Orders received</p><p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{totalOrders}</p></section></div><div className="mt-10">{chartData.length > 0 && <SalesChart data={chartData}/>}</div><div className="mt-10 border-t border-stone-300 pt-10"><AddProductForm /></div></div></div>; }
+export default async function AdminDashboard() {
+  const supabase = await supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // load orders and products for dashboard
+  const { data: orders } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+  const { data: products } = await supabase.from('product').select('id, created_at, Name, Price, Description, Image, Category, Stock, Status').order('created_at', { ascending: false });
+
+  const totalRevenue = orders?.reduce((sum, order) => sum + (order.totalPrice || 0), 0) || 0;
+  const totalOrders = orders?.length || 0;
+  const chartData = orders?.slice(0, 6).reverse().map((order) => ({ name: order.full_name?.split(" ")[0] || "Customer", amount: order.totalPrice })) || [];
+
+  return <div className="min-h-screen bg-[#f7f7f4] py-10"><div className="page-shell max-w-6xl"><p className="eyebrow">Marketly administration</p><div className="mt-2 flex flex-wrap items-end justify-between gap-4 border-b border-stone-300 pb-7"><div><h1 className="text-3xl font-semibold tracking-[-.055em]">Store overview</h1><p className="mt-2 text-sm text-stone-600">A concise view of current store activity.</p></div><p className="text-xs text-stone-500">Signed in as {user.email}</p></div><div className="mt-8 grid gap-px border border-stone-200 bg-stone-200 sm:grid-cols-2"><section className="bg-white p-6"><p className="eyebrow">Total sales</p><p className="mt-3 text-3xl font-semibold tracking-[-.05em]">${totalRevenue.toLocaleString()}</p></section><section className="bg-white p-6"><p className="eyebrow">Orders received</p><p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{totalOrders}</p></section></div><div className="mt-10">{chartData.length > 0 && <SalesChart data={chartData}/>}</div><div className="mt-10 border-t border-stone-300 pt-10"><AddProductForm /></div>
+  <div className="mt-10"><AdminProductsList initialProducts={products ?? []} /></div>
+  </div></div>;
+}

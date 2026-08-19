@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState, useEffect, useRef } from "react";
 import { addProductAction } from "@/app/admin/action";
 import {
     Upload,
@@ -28,12 +28,28 @@ export default function AddProductForm() {
 
     // Preview URL for uploaded image
     const [preview, setPreview] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement | null>(null);
+    const fileRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         return () => {
             if (preview) URL.revokeObjectURL(preview);
         };
     }, [preview]);
+
+    // Reset the form and file input on successful submission
+    useEffect(() => {
+        if (state?.success) {
+            // clear preview and revoke URL
+            if (preview) {
+                URL.revokeObjectURL(preview);
+                setPreview(null);
+            }
+            // Reset native form (clears file inputs too)
+            formRef.current?.reset();
+            if (fileRef.current) fileRef.current.value = "";
+        }
+    }, [state?.success]);
 
     return (
         <div className="w-full max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-[2rem] border border-slate-200 shadow-sm">
@@ -48,7 +64,7 @@ export default function AddProductForm() {
                 </p>
             </div>
 
-            <form action={formAction} className="space-y-8">
+            <form ref={formRef} action={formAction} className="space-y-8">
 
                 {/* Product Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -59,7 +75,6 @@ export default function AddProductForm() {
                         <input
                             name="name"
                             required
-
                             className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                         />
                     </div>
@@ -73,9 +88,42 @@ export default function AddProductForm() {
                             required
                             type="number"
                             step="0.01"
-
                             className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                         />
+                    </div>
+                </div>
+
+                {/* Category / Stock / Status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Category
+                        </label>
+                        <select name="category" required className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all">
+                            <option value="laptop">Laptop</option>
+                            <option value="phones">Phones</option>
+                            <option value="smart_watches">Smart Watches</option>
+                            <option value="headphones">Headphones</option>
+                            <option value="earbuds">Earbuds</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Stock quantity
+                        </label>
+                        <input name="stock" type="number" defaultValue={0} min={0} className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all" />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Status
+                        </label>
+                        <select name="status" className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
                 </div>
 
@@ -87,7 +135,6 @@ export default function AddProductForm() {
                     <textarea
                         name="description"
                         required
-
                         className="w-full p-4 h-32 rounded-xl border text-taupe-950 border-slate-200 resize-none focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                     />
                 </div>
@@ -100,6 +147,7 @@ export default function AddProductForm() {
 
                     <div className="relative group border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:border-indigo-600 transition-all cursor-pointer">
                         <input
+                            ref={fileRef}
                             name="image"
                             type="file"
                             required
@@ -112,11 +160,8 @@ export default function AddProductForm() {
                         />
 
                         {preview ? (
-                            <Image
-                                src={preview}
-                                alt="Preview"
-                                className="h-40 object-contain rounded-xl"
-                            />
+                            // next/image cannot render object URLs in server components directly, but this is a client component
+                            <img src={preview} alt="Preview" className="h-40 object-contain rounded-xl" />
                         ) : (
                             <>
                                 <ImageIcon className="w-10 h-10 text-slate-400 mb-3" />

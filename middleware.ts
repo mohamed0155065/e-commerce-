@@ -48,6 +48,20 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
+    // require admin role for admin routes
+    try {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (!profile || profile.role !== 'admin') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
+    } catch (e) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+
     // Allow access to the protected route
     return supabaseResponse
 }

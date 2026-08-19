@@ -7,14 +7,14 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ query?: string }> }) {
-  const { query = "" } = await searchParams;
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ query?: string, category?: string }> }) {
+  const { query = "", category = "all" } = await searchParams;
   const hasSearch = Boolean(query.trim());
   let products: Product[] = [];
   let loadError = false;
 
   try {
-    products = await productService.getAll(query);
+    products = await productService.getAll(query, category);
   } catch (error) {
     console.error("[HomePage:products]", error);
     loadError = true;
@@ -26,6 +26,26 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <div className="border-l border-[#b9c8ba] py-4 pl-6 sm:mb-2 sm:pl-8"><p className="text-sm font-medium text-stone-800">Simple product discovery.</p><p className="mt-2 text-sm leading-6 text-stone-600">Search the catalog or explore every available product below.</p><a href="#products" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#285943] hover:text-[#1d4534]">Explore products <ArrowRight size={16} /></a></div>
     </div></section>
     <section id="products" className="page-shell pt-14"><div className="mb-9 flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">{hasSearch ? "Search results" : "The collection"}</p><h2 className="mt-2 text-3xl font-semibold tracking-[-.045em] text-stone-950">{hasSearch ? `Results for “${query}”` : "Products worth keeping"}</h2></div>{!loadError && <p className="text-sm text-stone-500">{products.length} {products.length === 1 ? "item" : "items"}</p>}</div>
+      {/* Category navigation */}
+      <nav className="mb-6 flex gap-3 flex-wrap">
+        {[
+          { slug: 'all', label: 'All' },
+          { slug: 'laptop', label: 'Laptop' },
+          { slug: 'phones', label: 'Phones' },
+          { slug: 'smart_watches', label: 'Smart Watches' },
+          { slug: 'headphones', label: 'Headphones' },
+          { slug: 'earbuds', label: 'Earbuds' },
+          { slug: 'other', label: 'Other' },
+        ].map((c) => (
+          <Link
+            key={c.slug}
+            href={`/?category=${c.slug}`}
+            className={`inline-block rounded-full border px-4 py-1 text-sm ${category === c.slug ? 'bg-[#285943] text-white' : 'bg-white text-stone-700'}`}
+          >
+            {c.label}
+          </Link>
+        ))}
+      </nav>
       {loadError ? <div className="border border-stone-300 bg-white px-6 py-20 text-center"><PackageSearch className="mx-auto text-stone-400" size={28}/><h3 className="mt-4 text-lg font-semibold">Unable to load products</h3><p className="mt-2 text-sm text-stone-500">Please check your connection and try again.</p><Link href="/" className="mt-5 inline-block text-sm font-semibold text-[#285943] hover:underline">Try again</Link></div> : products.length ? <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6">{products.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <div className="border border-dashed border-stone-300 bg-white px-6 py-20 text-center"><PackageSearch className="mx-auto text-stone-400" size={28}/><h3 className="mt-4 text-lg font-semibold">{hasSearch ? "No products matched your search" : "No products available"}</h3><p className="mt-2 text-sm text-stone-500">{hasSearch ? "Try another search term, or clear your search to browse everything." : "Please check back soon for new products."}</p></div>}
     </section>
   </div>;
