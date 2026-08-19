@@ -1,33 +1,80 @@
-import { supabase } from "@/lib/supabase";
+import { supabaseServer } from "@/lib/supabaseServer";
 import type { Product } from "@/types";
 
 const TABLE_NAME = "product";
-const PRODUCT_COLUMNS = "id, created_at, updated_at, Name, Price, Description, Image, Category, Stock, Status, Slug";
+
+const PRODUCT_COLUMNS =
+    "id, created_at, updated_at, Name, Price, Description, Image, Category, Stock, Status, Slug";
 
 export const productService = {
-    async getAll(search?: string, category?: string, includeInactive = false): Promise<Product[]> {
-        // Show only active products by default for storefront usage
-        let query = supabase.from(TABLE_NAME).select(PRODUCT_COLUMNS);
+    async getAll(
+        search?: string,
+        category?: string,
+        includeInactive = false
+    ): Promise<Product[]> {
+        const supabase = await supabaseServer();
 
+        let query = supabase
+            .from(TABLE_NAME)
+            .select(PRODUCT_COLUMNS);
+
+        const normalizedSearch = search?.trim() || "";
+        const normalizedCategory = category?.trim() || "";
+
+        // Show only active products by default
         if (!includeInactive) {
-            query = query.filter("Status", "eq", "active");
+            query = query.eq("Status", "active");
         }
 
-        if (search?.trim()) {
-            query = query.filter("Name", "ilike", `%${search.trim()}%`);
+        // Search by product name
+        if (normalizedSearch) {
+            query = query.ilike(
+                "Name",
+                `%${normalizedSearch}%`
+            );
         }
 
-        if (category && category !== "all") {
-            query = query.filter("Category", "eq", category);
+        // Filter by category
+        if (
+            normalizedCategory &&
+            normalizedCategory !== "all"
+        ) {
+            query = query.eq(
+                "Category",
+                normalizedCategory
+            );
         }
 
-        const { data, error } = await query.returns<Product[]>();
-        if (error) throw new Error(`Unable to load products: ${error.message}`);
+        const { data, error } = await query
+            .returns<Product[]>();
+
+        if (error) {
+            console.error("PRODUCTS ERROR:", error);
+
+            throw new Error(
+                `Unable to load products: ${error.message}`
+            );
+        }
+
+        console.log("PRODUCTS DATA:", data);
+        console.log("PRODUCT COUNT:", data?.length);
+        console.log(
+            "PRODUCT SEARCH:",
+            normalizedSearch
+        );
+        console.log(
+            "PRODUCT CATEGORY:",
+            normalizedCategory
+        );
 
         return data ?? [];
     },
 
-    async getById(id: string): Promise<Product | null> {
+    async getById(
+        id: string
+    ): Promise<Product | null> {
+        const supabase = await supabaseServer();
+
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .select(PRODUCT_COLUMNS)
@@ -36,8 +83,13 @@ export const productService = {
             .returns<Product>();
 
         if (error) {
-            if (error.code === "PGRST116") return null;
-            throw new Error(`Unable to load product: ${error.message}`);
+            if (error.code === "PGRST116") {
+                return null;
+            }
+
+            throw new Error(
+                `Unable to load product: ${error.message}`
+            );
         }
 
         return data;
