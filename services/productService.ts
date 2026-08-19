@@ -2,20 +2,22 @@ import { supabase } from "@/lib/supabase";
 import type { Product } from "@/types";
 
 const TABLE_NAME = "product";
-const PRODUCT_COLUMNS = "id, created_at, Name, Price, Description, Image";
+const PRODUCT_COLUMNS = "id, created_at, updated_at, Name, Price, Description, Image, Category, Stock, Status, Slug";
 
 export const productService = {
-    async getAll(search?: string, category?: string): Promise<Product[]> {
-        // This projection is the established schema supported by the existing
-        // product table. Do not turn a missing optional UI field into a failed
-        // catalog query.
+    async getAll(search?: string, category?: string, includeInactive = false): Promise<Product[]> {
+        // Show only active products by default for storefront usage
         let query = supabase.from(TABLE_NAME).select(PRODUCT_COLUMNS);
+
+        if (!includeInactive) {
+            query = query.filter("Status", "eq", "active");
+        }
 
         if (search?.trim()) {
             query = query.filter("Name", "ilike", `%${search.trim()}%`);
         }
 
-        if (category && category !== "All") {
+        if (category && category !== "all") {
             query = query.filter("Category", "eq", category);
         }
 

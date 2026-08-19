@@ -32,28 +32,31 @@ export async function addProductAction(prevState: ActionState | null, formData: 
     try {
         const supabase = await supabaseServer();
 
-        // 1. Verify that the user is authenticated
+        // 1. Verify that the user is authenticated and is an admin
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Authentication required");
+
+        // check profile for admin role
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (!profile || profile.role !== 'admin') throw new Error('Not authorized');
 
         // 2. Extract form data
         const rawData = {
             name: formData.get('name'),
             price: formData.get('price'),
             description: formData.get('description'),
+            category: formData.get('category'),
+            stock: formData.get('stock'),
+            status: formData.get('status'),
         };
 
         // Validate form data against schema
         const result = productSchema.safeParse(rawData);
         if (!result.success) {
-            if (!result.success) {
-
-                return {
-                    success: false,
-                    message: result.error.issues[0].message
-                };
-            }
-
+            return {
+                success: false,
+                message: result.error.issues[0].message
+            };
         }
 
         const validated = result.data;
@@ -77,6 +80,14 @@ export async function addProductAction(prevState: ActionState | null, formData: 
             .from("product-images")
             .getPublicUrl(uploadData.path);
 
+        // Generate a slug and ensure uniqueness
+        const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        let slug = slugify(validated.name);
+        const { data: existing } = await supabase.from('product').select('id').eq('Slug', slug).limit(1);
+        if (existing && existing.length) {
+            slug = `${slug}-${Date.now()}`;
+        }
+
         // 4. Insert the validated product into the database
         const { error: dbError } = await supabase
             .from('product')
@@ -85,7 +96,10 @@ export async function addProductAction(prevState: ActionState | null, formData: 
                 Price: validated.price,
                 Description: validated.description,
                 Image: publicUrl,
-                Category: "General"
+                Category: validated.category,
+                Stock: validated.stock ?? 0,
+                Status: validated.status ?? 'active',
+                Slug: slug
             }]);
 
         if (dbError) throw new Error(`Database Error: ${dbError.message}`);
@@ -109,5 +123,43 @@ export async function addProductAction(prevState: ActionState | null, formData: 
             success: false,
             message: error.message || "Unexpected error occurred"
         };
+    }
+}
+
+export async function deleteProductAction(prevState: ActionState | null, payload: { id: string }) {
+    try {
+        const supabase = await supabaseServer();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Authentication required');
+
+        // check admin role
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (!profile || profile.role !== 'admin') throw new Error('Not authorized');
+
+        // fetch product to remove image
+        const { data: product } = await supabase.from('product').select('id, Image').eq('id', payload.id).maybeSingle();
+        if (!product) throw new Error('Product not found');
+
+        // if image is stored in bucket, attempt to remove it (best-effort)
+        try {
+            if (product.Image && product.Image.includes('product-images')) {
+                // naive extraction of file name from URL
+                const parts = product.Image.split('/');
+                const fileName = parts[parts.length - 1];
+                await supabase.storage.from('product-images').remove([fileName]);
+            }
+        } catch (e) {
+            // ignore storage removal errors
+        }
+
+        const { error } = await supabase.from('product').delete().eq('id', payload.id);
+        if (error) throw new Error(error.message);
+
+        revalidatePath('/');
+        revalidatePath('/admin/dashboard');
+
+        return { success: true, message: 'Product deleted' };
+    } catch (error: any) {
+        return { success: false, message: error.message || 'Failed to delete' };
     }
 }
