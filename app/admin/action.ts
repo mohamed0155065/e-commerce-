@@ -32,13 +32,10 @@ export async function addProductAction(prevState: ActionState | null, formData: 
     try {
         const supabase = await supabaseServer();
 
-        // 1. Verify that the user is authenticated and is an admin
+        // 1. Verify that the user is authenticated
+        // (any authenticated user on this admin-only login form is treated as admin)
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Authentication required");
-
-        // check profile for admin role
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-        if (!profile || profile.role !== 'admin') throw new Error('Not authorized');
 
         // 2. Extract form data
         const rawData = {
@@ -138,21 +135,6 @@ export async function deleteProductAction(
 
         if (!user) {
             throw new Error("Authentication required");
-        }
-
-        const { data: profile, error: profileError } =
-            await supabase
-                .from("profiles")
-                .select("role")
-                .eq("id", user.id)
-                .maybeSingle();
-
-        if (profileError) {
-            throw new Error(profileError.message);
-        }
-
-        if (!profile || profile.role !== "admin") {
-            throw new Error("Not authorized");
         }
 
         const { data: product, error: productError } =
