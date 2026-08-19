@@ -126,40 +126,104 @@ export async function addProductAction(prevState: ActionState | null, formData: 
     }
 }
 
-export async function deleteProductAction(prevState: ActionState | null, payload: { id: string }) {
+export async function deleteProductAction(
+    payload: { id: string }
+) {
     try {
         const supabase = await supabaseServer();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Authentication required');
 
-        // check admin role
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-        if (!profile || profile.role !== 'admin') throw new Error('Not authorized');
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
 
-        // fetch product to remove image
-        const { data: product } = await supabase.from('product').select('id, Image').eq('id', payload.id).maybeSingle();
-        if (!product) throw new Error('Product not found');
-
-        // if image is stored in bucket, attempt to remove it (best-effort)
-        try {
-            if (product.Image && product.Image.includes('product-images')) {
-                // naive extraction of file name from URL
-                const parts = product.Image.split('/');
-                const fileName = parts[parts.length - 1];
-                await supabase.storage.from('product-images').remove([fileName]);
-            }
-        } catch (e) {
-            // ignore storage removal errors
+        if (!user) {
+            throw new Error("Authentication required");
         }
 
-        const { error } = await supabase.from('product').delete().eq('id', payload.id);
-        if (error) throw new Error(error.message);
+        const { data: profile, error: profileError } =
+            await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .maybeSingle();
 
-        revalidatePath('/');
-        revalidatePath('/admin/dashboard');
+        if (profileError) {
+            throw new Error(profileError.message);
+        }
 
-        return { success: true, message: 'Product deleted' };
-    } catch (error: any) {
-        return { success: false, message: error.message || 'Failed to delete' };
+        if (!profile || profile.role !== "admin") {
+            throw new Error("Not authorized");
+        }
+
+        const { data: product, error: productError } =
+            await supabase
+                .from("product")
+                .select("id, Image")
+                .eq("id", payload.id)
+                .maybeSingle();
+
+        if (productError) {
+            throw new Error(productError.message);
+        }
+
+        if (!product) {
+            throw new Error("Product not found");
+        }
+
+        if (product.Image) {
+            try {
+                if (product.Image.includes("/product-images/")) {
+                    const fileName = decodeURIComponent(
+                        product.Image.split("/product-images/")[1]
+                    );
+
+                    if (fileName) {
+                        const { error: storageError } =
+                            await supabase.storage
+                                .from("product-images")
+                                .remove([fileName]);
+
+                        if (storageError) {
+                            console.warn(
+                                "Failed to remove product image:",
+                                storageError.message
+                            );
+                        }
+                    }
+                }
+            } catch (storageError) {
+                console.warn(
+                    "Failed to remove product image:",
+                    storageError
+                );
+            }
+        }
+
+        const { error: deleteError } = await supabase
+            .from("product")
+            .delete()
+            .eq("id", payload.id);
+
+        if (deleteError) {
+            throw new Error(deleteError.message);
+        }
+
+        revalidatePath("/");
+        revalidatePath("/admin/dashboard");
+
+        return {
+            success: true,
+            message: "Product deleted successfully",
+        };
+    } catch (error) {
+        console.error("Delete product error:", error);
+
+        return {
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to delete product",
+        };
     }
 }
