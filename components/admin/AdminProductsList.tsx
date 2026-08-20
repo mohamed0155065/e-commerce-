@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Product } from "@/types";
 import { Trash2, Edit, Loader2 } from "lucide-react";
 import { deleteProductAction } from "@/app/admin/action";
+import EditProductModal from "./EditProductModal"; // عدّل المسار لو الملف في مكان مختلف
 
 export default function AdminProductsList({
   initialProducts,
@@ -15,6 +16,11 @@ export default function AdminProductsList({
   );
 
   const [deletingId, setDeletingId] = useState<string | null>(
+    null
+  );
+
+  // Tracks which product is currently open in the edit modal
+  const [editingProduct, setEditingProduct] = useState<Product | null>(
     null
   );
 
@@ -118,6 +124,7 @@ export default function AdminProductsList({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
+                        onClick={() => setEditingProduct(product)}
                         className="px-3 py-1 border rounded-md text-sm flex items-center gap-2 bg-white"
                         title="Edit"
                       >
@@ -155,6 +162,20 @@ export default function AdminProductsList({
           </tbody>
         </table>
       </div>
+
+      {editingProduct && (
+        <EditProductModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSuccess={(updated) => {
+            setProducts((current) =>
+              current.map((p) =>
+                p.id === updated.id ? updated : p
+              )
+            );
+          }}
+        />
+      )}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { productSchema } from "@/validators/productSchema";
 type ActionState = {
     success: boolean;
     message: string;
+    product?: any;
 };
 
 /**
@@ -116,6 +117,109 @@ export async function addProductAction(prevState: ActionState | null, formData: 
         }
 
         // Return generic or Supabase error message
+        return {
+            success: false,
+            message: error.message || "Unexpected error occurred"
+        };
+    }
+}
+
+/**
+ * Update an existing product
+ * - Validates the form data
+ * - Optionally uploads a new image (keeps existing image if none provided)
+ * - Updates the product row in the database
+ * - Revalidates relevant pages
+ * - Returns the updated product so the UI can update without a full refresh
+ */
+export async function updateProductAction(prevState: ActionState | null, formData: FormData) {
+    try {
+        const supabase = await supabaseServer();
+
+        // 1. Verify authentication
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Authentication required");
+
+        const id = formData.get('id') as string;
+        if (!id) throw new Error("Product ID is required");
+
+        // 2. Extract form data
+        const rawData = {
+            name: formData.get('name'),
+            price: formData.get('price'),
+            description: formData.get('description'),
+            category: formData.get('category'),
+            stock: formData.get('stock'),
+            status: formData.get('status'),
+        };
+
+        // Validate form data against schema
+        const result = productSchema.safeParse(rawData);
+        if (!result.success) {
+            return {
+                success: false,
+                message: result.error.issues[0].message
+            };
+        }
+
+        const validated = result.data;
+
+        // 3. Build update payload (without image first)
+        const updatePayload: Record<string, any> = {
+            Name: validated.name,
+            Price: validated.price,
+            Description: validated.description,
+            Category: validated.category,
+            Stock: validated.stock ?? 0,
+            Status: validated.status ?? 'active',
+        };
+
+        // 4. Only upload/replace image if a new file was provided
+        const imageFile = formData.get('image') as File;
+        if (imageFile && imageFile.size > 0) {
+            const cleanName = sanitizeFileName(imageFile.name);
+            const fileName = `${Date.now()}-${cleanName}`;
+
+            const { data: uploadData, error: uploadErr } = await supabase.storage
+                .from("product-images")
+                .upload(fileName, imageFile);
+
+            if (uploadErr) throw new Error(`Storage Error: ${uploadErr.message}`);
+
+            const { data: { publicUrl } } = supabase.storage
+                .from("product-images")
+                .getPublicUrl(uploadData.path);
+
+            updatePayload.Image = publicUrl;
+        }
+
+        // 5. Update the product in the database and get the updated row back
+        const { data: updatedProduct, error: dbError } = await supabase
+            .from('product')
+            .update(updatePayload)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (dbError) throw new Error(`Database Error: ${dbError.message}`);
+
+        // Revalidate homepage and admin dashboard
+        revalidatePath("/");
+        revalidatePath("/admin/dashboard");
+
+        return {
+            success: true,
+            message: "Product updated successfully!",
+            product: updatedProduct,
+        };
+
+    } catch (error: any) {
+        console.error("Update Product Error:", error);
+
+        if (error.errors && error.errors.length > 0) {
+            return { success: false, message: error.errors[0].message };
+        }
+
         return {
             success: false,
             message: error.message || "Unexpected error occurred"
