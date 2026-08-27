@@ -194,12 +194,20 @@ export async function updateProductAction(prevState: ActionState | null, formDat
         }
 
         // 5. Update the product in the database and get the updated row back
+        console.log("=== UPDATE DEBUG START ===");
+        console.log("UPDATE PAYLOAD:", updatePayload);
+        console.log("UPDATE ID:", id, "| typeof:", typeof id);
+
         const { data: updatedProduct, error: dbError } = await supabase
             .from('product')
             .update(updatePayload)
             .eq('id', id)
             .select()
             .single();
+
+        console.log("UPDATE RESULT DATA:", updatedProduct);
+        console.log("UPDATE RESULT ERROR:", dbError);
+        console.log("=== UPDATE DEBUG END ===");
 
         if (dbError) throw new Error(`Database Error: ${dbError.message}`);
 
