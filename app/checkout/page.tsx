@@ -10,10 +10,105 @@ import { checkoutSchema, type checkoutInput } from "@/validators/checkoutSchema"
 import { useCartStore } from "@/store/useCartStore";
 import { supabase } from "@/lib/supabase";
 
-export default function CheckoutPage() { const [isSubmitting, setIsSubmitting] = useState(false); const [submitError, setSubmitError] = useState(""); const { items, getTotalPrice, clearCart } = useCartStore(); const router = useRouter(); const { register, handleSubmit, formState: { errors } } = useForm<checkoutInput>({ resolver: zodResolver(checkoutSchema) }); const total = getTotalPrice();
-  const onSubmit = async (formData: checkoutInput) => { setIsSubmitting(true); setSubmitError(""); try { const { error } = await supabase.from("orders").insert([{ full_name: formData.fullName, email: formData.email, phone: formData.phone, address: formData.address, city: formData.city, totalPrice: total, items }]); if (error) throw error; clearCart(); router.push("/success"); } catch { setSubmitError("We couldn’t place your order. Please check your connection and try again."); } finally { setIsSubmitting(false); } };
-  if (!items.length) return <div className="page-shell grid min-h-[calc(100vh-4rem)] place-items-center text-center"><div><h1 className="text-3xl font-semibold tracking-[-.05em]">Your cart is empty</h1><p className="mt-3 text-sm text-stone-500">Add a product before heading to checkout.</p><Link href="/" className="mt-6 inline-block bg-[#285943] px-5 py-3 text-sm font-semibold text-white">Return to shop</Link></div></div>;
+export default function CheckoutPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const { items, getTotalPrice, clearCart } = useCartStore();
+  const router = useRouter();
+  const { register, handleSubmit, formState: { errors } } = useForm<checkoutInput>({ resolver: zodResolver(checkoutSchema) });
+  const total = getTotalPrice();
+
+  const onSubmit = async (formData: checkoutInput) => {
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      const { error } = await supabase.rpc("place_order", {
+        p_full_name: formData.fullName,
+        p_email: formData.email,
+        p_phone: formData.phone,
+        p_address: formData.address,
+        p_city: formData.city,
+        p_items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+      });
+
+      if (error) {
+        if (error.message.includes("AUTH_REQUIRED")) {
+          router.push("/login?redirect=/checkout");
+          return;
+        } else if (error.message.includes("INSUFFICIENT_STOCK")) {
+          setSubmitError("One of the items in your cart is out of stock. Please update your cart.");
+        } else if (error.message.includes("PRODUCT_NOT_FOUND")) {
+          setSubmitError("One of the items is no longer available.");
+        } else {
+          throw error;
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      clearCart();
+      router.push("/success");
+    } catch {
+      setSubmitError("We couldn't place your order. Please check your connection and try again.");
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!items.length) return (
+    <div className="page-shell grid min-h-[calc(100vh-4rem)] place-items-center text-center">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-[-.05em]">Your cart is empty</h1>
+        <p className="mt-3 text-sm text-stone-500">Add a product before heading to checkout.</p>
+        <Link href="/" className="mt-6 inline-block bg-[#285943] px-5 py-3 text-sm font-semibold text-white">Return to shop</Link>
+      </div>
+    </div>
+  );
+
   const input = (name: keyof checkoutInput) => `field ${errors[name] ? "border-red-600" : ""}`;
-  return <div className="page-shell py-8 sm:py-12"><Link href="/" className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-[#285943]"><ArrowLeft size={16}/> Continue shopping</Link><div className="mt-8 grid gap-10 lg:grid-cols-[1.1fr_.75fr]"><section><p className="eyebrow">Secure checkout</p><h1 className="mt-2 text-3xl font-semibold tracking-[-.055em] sm:text-4xl">Delivery details</h1><form onSubmit={handleSubmit(onSubmit)} className="mt-8 border-t border-stone-300 pt-7"><div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message}><input id="fullName" autoComplete="name" {...register("fullName")} className={input("fullName")}/></Field><Field label="Email address" error={errors.email?.message}><input id="email" type="email" autoComplete="email" {...register("email")} className={input("email")}/></Field><Field label="Phone number" error={errors.phone?.message}><input id="phone" autoComplete="tel" {...register("phone")} className={input("phone")}/></Field><Field label="City / region" error={errors.city?.message}><input id="city" autoComplete="address-level2" {...register("city")} className={input("city")}/></Field></div><div className="mt-5"><Field label="Street address" error={errors.address?.message}><textarea id="address" autoComplete="street-address" {...register("address")} className={`${input("address")} min-h-28 resize-y`}/></Field></div>{submitError && <p role="alert" className="mt-5 flex gap-2 bg-red-50 p-3 text-sm text-red-800"><AlertCircle size={18}/>{submitError}</p>}<button disabled={isSubmitting} className="mt-7 flex w-full items-center justify-center gap-2 bg-[#285943] px-5 py-4 text-sm font-semibold text-white hover:bg-[#1d4534] disabled:bg-stone-300">{isSubmitting ? "Placing order…" : `Place order · $${total.toLocaleString()}`}</button><p className="mt-4 flex items-center justify-center gap-2 text-xs text-stone-500"><LockKeyhole size={13}/> Your information is handled securely.</p></form></section><aside className="h-fit border border-stone-200 bg-white p-5 lg:sticky lg:top-20"><h2 className="font-semibold">Order summary</h2><ul className="mt-5 divide-y divide-stone-100">{items.map((item) => <li key={item.id} className="flex gap-3 py-4 first:pt-0"><div className="relative h-14 w-14 shrink-0 bg-[#f2f3ef]"><Image src={item.Image} fill sizes="56px" alt="" className="object-contain p-1"/></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.Name}</p><p className="mt-1 text-xs text-stone-500">Qty {item.quantity}</p></div><p className="text-sm font-semibold">${(item.Price * item.quantity).toLocaleString()}</p></li>)}</ul><div className="mt-4 border-t border-stone-200 pt-4"><div className="flex justify-between text-sm text-stone-600"><span>Delivery</span><span className="text-[#23734d]">Free</span></div><div className="mt-4 flex justify-between text-lg font-semibold"><span>Total</span><span>${total.toLocaleString()}</span></div></div></aside></div></div>;
+
+  return (
+    <div className="page-shell py-8 sm:py-12">
+      <Link href="/" className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-[#285943]"><ArrowLeft size={16} /> Continue shopping</Link>
+      <div className="mt-8 grid gap-10 lg:grid-cols-[1.1fr_.75fr]">
+        <section>
+          <p className="eyebrow">Secure checkout</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-.055em] sm:text-4xl">Delivery details</h1>
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 border-t border-stone-300 pt-7">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Full name" error={errors.fullName?.message}><input id="fullName" autoComplete="name" {...register("fullName")} className={input("fullName")} /></Field>
+              <Field label="Email address" error={errors.email?.message}><input id="email" type="email" autoComplete="email" {...register("email")} className={input("email")} /></Field>
+              <Field label="Phone number" error={errors.phone?.message}><input id="phone" autoComplete="tel" {...register("phone")} className={input("phone")} /></Field>
+              <Field label="City / region" error={errors.city?.message}><input id="city" autoComplete="address-level2" {...register("city")} className={input("city")} /></Field>
+            </div>
+            <div className="mt-5">
+              <Field label="Street address" error={errors.address?.message}><textarea id="address" autoComplete="street-address" {...register("address")} className={`${input("address")} min-h-28 resize-y`} /></Field>
+            </div>
+            {submitError && <p role="alert" className="mt-5 flex gap-2 bg-red-50 p-3 text-sm text-red-800"><AlertCircle size={18} />{submitError}</p>}
+            <button disabled={isSubmitting} className="mt-7 flex w-full items-center justify-center gap-2 bg-[#285943] px-5 py-4 text-sm font-semibold text-white hover:bg-[#1d4534] disabled:bg-stone-300">{isSubmitting ? "Placing order…" : `Place order · $${total.toLocaleString()}`}</button>
+            <p className="mt-4 flex items-center justify-center gap-2 text-xs text-stone-500"><LockKeyhole size={13} /> Your information is handled securely.</p>
+          </form>
+        </section>
+        <aside className="h-fit border border-stone-200 bg-white p-5 lg:sticky lg:top-20">
+          <h2 className="font-semibold">Order summary</h2>
+          <ul className="mt-5 divide-y divide-stone-100">
+            {items.map((item) => (
+              <li key={item.id} className="flex gap-3 py-4 first:pt-0">
+                <div className="relative h-14 w-14 shrink-0 bg-[#f2f3ef]"><Image src={item.Image} fill sizes="56px" alt="" className="object-contain p-1" /></div>
+                <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.Name}</p><p className="mt-1 text-xs text-stone-500">Qty {item.quantity}</p></div>
+                <p className="text-sm font-semibold">${(item.Price * item.quantity).toLocaleString()}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 border-t border-stone-200 pt-4">
+            <div className="flex justify-between text-sm text-stone-600"><span>Delivery</span><span className="text-[#23734d]">Free</span></div>
+            <div className="mt-4 flex justify-between text-lg font-semibold"><span>Total</span><span>${total.toLocaleString()}</span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
 }
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) { return <div><label className="field-label">{label}</label>{children}{error && <p className="mt-1 text-xs text-red-700">{error}</p>}</div>; }
+
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return <div><label className="field-label">{label}</label>{children}{error && <p className="mt-1 text-xs text-red-700">{error}</p>}</div>;
+}

@@ -16,6 +16,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
   );
   const [mounted, setMounted] = useState(false);
   const rating = product.Rating ?? 4.5;
+  const outOfStock = (product.Stock ?? 0) <= 0;
 
   useEffect(() => {
     setMounted(true);
@@ -39,6 +40,12 @@ export const ProductCard = ({ product }: { product: Product }) => {
             />
           </div>
         </Link>
+
+        {outOfStock && (
+          <span className="absolute left-2 top-2 rounded-full bg-stone-900/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+            Out of stock
+          </span>
+        )}
 
         <button
           type="button"
@@ -87,9 +94,10 @@ export const ProductCard = ({ product }: { product: Product }) => {
             ${product.Price.toLocaleString()}
           </p>
           <button
-            onClick={() => addItem(product)}
-            className="grid h-9 w-9 place-items-center rounded-lg bg-[#14532d] text-white transition hover:bg-[#0d3d21]"
-            aria-label={`Add ${product.Name} to cart`}
+            onClick={() => !outOfStock && addItem(product)}
+            disabled={outOfStock}
+            className="grid h-9 w-9 place-items-center rounded-lg bg-[#14532d] text-white transition hover:bg-[#0d3d21] disabled:bg-stone-300 disabled:cursor-not-allowed"
+            aria-label={outOfStock ? `${product.Name} is out of stock` : `Add ${product.Name} to cart`}
           >
             <ShoppingCart size={16} />
           </button>

@@ -2,22 +2,43 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Heart, ShoppingCart, Truck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Heart, ShoppingCart, Truck, User, LogOut } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { CartDrawer } from "./CartDrawer";
 import { SearchBar } from "./SearchBar";
+import { supabase } from "@/lib/supabase";
 
 export const Navbar = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const router = useRouter();
 
   const totalItems = useCartStore((state) => state.getTotalItems());
   const totalWishlisted = useWishlistStore((state) => state.items.length);
 
   useEffect(() => {
     setMounted(true);
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+
+    return () => listener.subscription.unsubscribe();
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUserEmail(null);
+    router.push("/");
+    router.refresh();
+  };
 
   const cartLabel = mounted
     ? `Open cart with ${totalItems} items`
@@ -25,8 +46,7 @@ export const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white">
-      {/* Announcement bar */}
-     <div className="flex h-8 items-center justify-center gap-2 bg-[#0d3d21] px-4 text-xs font-medium text-white">
+      <div className="flex h-8 items-center justify-center gap-2 bg-[#0d3d21] px-4 text-xs font-medium text-white">
         <Truck size={14} aria-hidden="true" />
         <span>Free shipping on orders over $50</span>
       </div>
@@ -104,6 +124,27 @@ export const Navbar = () => {
               </span>
               <span className="hidden lg:inline">Cart</span>
             </button>
+
+            {mounted && userEmail ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950"
+                aria-label="Sign out"
+              >
+                <LogOut size={19} aria-hidden="true" />
+                <span className="hidden lg:inline">Sign out</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950"
+                aria-label="Sign in"
+              >
+                <User size={19} aria-hidden="true" />
+                <span className="hidden lg:inline">Sign in</span>
+              </Link>
+            )}
           </div>
         </div>
 
