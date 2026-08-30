@@ -1,91 +1,138 @@
-
 "use client";
-// Importing required components from Recharts for the chart
+
 import {
-    BarChart, Bar, XAxis, YAxis, Tooltip,
-    ResponsiveContainer, CartesianGrid
-} from 'recharts';
-import { memo } from "react";
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-// Define TypeScript interface for chart props
-interface SalesChartProps {
-    // data is an array of objects with 'name' (category) and 'amount' (value)
-    data: { name: string; amount: number }[];
-}
-const tooltipStyle = {
+type SalesPoint = {
+  name: string;
+  amount: number;
+};
 
-    borderRadius: '8px',
-    border: 'none',
-    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-    padding: '15px'
+/**
+ * Recharts requires a client boundary, so only this leaf component becomes
+ * client-side.
+ *
+ * The parent dashboard remains a Server Component and sends an already
+ * aggregated, bounded dataset.
+ */
+export default function SalesChart({
+  data,
+}: {
+  data: SalesPoint[];
+}) {
+  const maxValue = Math.max(
+    ...data.map((item) => Number(item.amount) || 0),
+    0
+  );
 
+  return (
+    <section className="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="eyebrow">Performance</p>
 
-}
-const axisTeckStyle = {
-    fill: '#94a3b8',
-    fontSize: 11,
-    fontWeight: 700
-}
+          <h2 className="mt-1 text-lg font-semibold tracking-tight">
+            Sales performance
+          </h2>
 
-const tooltipCursor = {
-    fill: '#f8fafc'
-}
-// Functional component to render the sales bar chart
-function Chart({ data }: SalesChartProps) {
-    return (
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mb-12">
-            {/* Header section: Title and subtitle */}
-            <div className="mb-8">
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                    Sales Performance
-                </h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
-                    Recent Revenue Flow
-                </p>
-            </div>
-
-            {/* Responsive container ensures chart adjusts to parent width */}
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                    data={data}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                    {/* Grid lines (horizontal only) for better readability */}
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-
-                    {/* X Axis configuration */}
-                    <XAxis
-                        dataKey="name" // maps to the 'name' property of data
-                        axisLine={false} // hide axis line for cleaner look
-                        tickLine={false} // hide tick lines
-                        tick={axisTeckStyle} // style of ticks
-                        dy={10} // vertical offset for tick labels
-                    />
-
-                    {/* Y Axis configuration */}
-                    <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={axisTeckStyle}
-                    />
-
-                    {/* Tooltip configuration */}
-                    <Tooltip
-                        cursor={tooltipCursor} // hover effect on bars
-                        contentStyle={tooltipStyle}
-                    />
-
-                    {/* Bars configuration */}
-                    <Bar
-                        dataKey="amount" // maps to 'amount' property
-                        fill="#285943" // bar color
-                        radius={[4, 4, 0, 0]} // rounded top corners
-                        barSize={40} // width of bars
-                        isAnimationActive={false}
-                    />
-                </BarChart>
-            </ResponsiveContainer>
+          <p className="mt-1 text-sm text-stone-500">
+            Revenue across the latest 7 days.
+          </p>
         </div>
-    );
+
+        <span className="rounded-lg bg-stone-50 px-3 py-2 text-xs font-medium text-stone-600">
+          Last 7 days
+        </span>
+      </div>
+
+      <div className="mt-6 h-[280px] w-full">
+        {data.length > 0 ? (
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            debounce={80}
+          >
+            <BarChart
+              data={data}
+              margin={{
+                top: 12,
+                right: 4,
+                left: -18,
+                bottom: 0,
+              }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="var(--line-soft)"
+              />
+
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#8a8d86",
+                  fontSize: 11,
+                }}
+                dy={9}
+              />
+
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#8a8d86",
+                  fontSize: 11,
+                }}
+                width={42}
+                domain={[0, Math.max(maxValue, 100)]}
+              />
+
+              <Tooltip
+                cursor={{
+                  fill: "#f5f6f2",
+                }}
+                formatter={(value) => [
+                  `$${Number(value).toLocaleString()}`,
+                  "Revenue",
+                ]}
+                contentStyle={{
+                  borderRadius: 10,
+                  border: "1px solid #e5e7e2",
+                  boxShadow:
+                    "0 12px 30px rgb(28 29 26 / 0.08)",
+                }}
+              />
+
+              <Bar
+                dataKey="amount"
+                fill="var(--brand)"
+                radius={[6, 6, 2, 2]}
+                barSize={28}
+
+                /**
+                 * The chart communicates business data; animation does not
+                 * add information. Disabling it reduces main-thread work and
+                 * makes navigation feel immediate on slower machines.
+                 */
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="grid h-full place-items-center rounded-xl bg-stone-50 text-sm text-stone-500">
+            No sales data yet.
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
-export default memo(Chart)

@@ -1,14 +1,27 @@
 @import "tailwindcss";
 
 :root {
+  /* ------------------------------------------------------------------------
+     Marketly design tokens
+
+     Keeping these values centralized makes the UI easier to evolve and avoids
+     subtle inconsistencies between dashboard components.
+  ------------------------------------------------------------------------ */
+
   --canvas: #f7f7f4;
   --surface: #ffffff;
+
   --ink: #1b1d1a;
   --muted: #686b63;
+
   --line: #dedfd9;
+  --line-soft: #eef0eb;
+
   --brand: #285943;
   --brand-hover: #1d4534;
+
   --accent: #e6ad42;
+
   --success: #23734d;
   --danger: #b42318;
 }
@@ -16,21 +29,119 @@
 @theme inline {
   --color-background: var(--canvas);
   --color-foreground: var(--ink);
-  --font-sans: Arial, Helvetica, sans-serif;
+
+  --font-sans:
+    Arial,
+    Helvetica,
+    sans-serif;
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--canvas); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
-button, input, textarea { font: inherit; }
-button, a, input, textarea { outline-offset: 3px; }
-button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--brand); }
-::selection { background: #cde5d7; color: var(--ink); }
+* {
+  box-sizing: border-box;
+}
 
-.page-shell { width: min(100% - 2rem, 76rem); margin-inline: auto; }
-.eyebrow { color: var(--brand); font-size: .69rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.field-label { display: block; margin-bottom: .5rem; color: #454840; font-size: .75rem; font-weight: 700; }
-:where(.field) { width: 100%; border: 1px solid var(--line); border-radius: .5rem; background: #fff; padding-block: .8rem; padding-inline: .9rem; color: var(--ink); transition: border-color .15s, box-shadow .15s; }
-:where(.field):hover { border-color: #bdbfb7; }
-:where(.field):focus { border-color: var(--brand); box-shadow: 0 0 0 3px #dcece2; outline: none; }
-:where(.field)[aria-invalid="true"] { border-color: var(--danger); }
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+
+  background: var(--canvas);
+  color: var(--ink);
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+textarea {
+  outline-offset: 3px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand);
+}
+
+::selection {
+  background: #cde5d7;
+  color: var(--ink);
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.page-shell {
+  width: min(100% - 2rem, 76rem);
+  margin-inline: auto;
+}
+
+.eyebrow {
+  color: var(--brand);
+
+  font-size: 0.69rem;
+  font-weight: 700;
+
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.field-label {
+  display: block;
+
+  margin-bottom: 0.5rem;
+
+  color: #454840;
+
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+:where(.field) {
+  width: 100%;
+
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+
+  background: var(--surface);
+  color: var(--ink);
+
+  padding-block: 0.8rem;
+  padding-inline: 0.9rem;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+:where(.field):hover {
+  border-color: #bdbfb7;
+}
+
+:where(.field):focus {
+  border-color: var(--brand);
+
+  box-shadow: 0 0 0 3px #dcece2;
+
+  outline: none;
+}
+
+:where(.field)[aria-invalid="true"] {
+  border-color: var(--danger);
+}

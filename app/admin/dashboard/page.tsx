@@ -1,74 +1,400 @@
-// app/admin/dashboard/page.tsx
-/**
- * app/admin/dashboard/page.tsx  ->  route: /admin/dashboard  (Overview tab)
- * ---------------------------------------------------------------------------
- * Server Component. Fetches only what the overview needs: KPI numbers
- * (total sales, orders received, awaiting action) and the last 6 orders for
- * the sales chart — it no longer also loads/renders the full orders table or
- * the product catalog, those now live at their own routes:
- *   /admin/dashboard/orders    -> app/admin/dashboard/orders/page.tsx
- *   /admin/dashboard/products  -> app/admin/dashboard/products/page.tsx
- *
- * Wrapped by app/admin/dashboard/layout.tsx, which handles the auth guard
- * and renders the sidebar — this file only owns the Overview content.
- * ---------------------------------------------------------------------------
- */
-import { supabaseServer, getSessionUser } from "@/lib/supabaseServer";
+import Link from "next/link";
+import {
+  ArrowUpRight,
+  ClipboardList,
+  Clock3,
+  DollarSign,
+  Package,
+  ShoppingBag,
+} from "lucide-react";
+
+import { getSessionUser, supabaseServer } from "@/lib/supabaseServer";
 import SalesChart from "./Chart";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * This is intentionally a small read model rather than the complete Order
+ * domain object.
+ *
+ * The dashboard doesn't need customer addresses, phone numbers, items, etc.
+ * Sending those columns would increase DB work, serialization cost and RSC
+ * payload size without providing any UX value.
+ */
+type DashboardData = {
+  total_sales: number;
+  orders_received: number;
+  awaiting_action: number;
+
+  sales_performance: {
+    name: string;
+    amount: number;
+  }[];
+
+  recent_orders: {
+    id: number;
+    totalPrice: number;
+    status: string;
+    created_at: string;
+    full_name: string;
+  }[];
+};
+
+const EMPTY_DASHBOARD: DashboardData = {
+  total_sales: 0,
+  orders_received: 0,
+  awaiting_action: 0,
+  sales_performance: [],
+  recent_orders: [],
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  pending: "bg-amber-50 text-amber-700 ring-amber-200",
+  processing: "bg-blue-50 text-blue-700 ring-blue-200",
+  shipped: "bg-violet-50 text-violet-700 ring-violet-200",
+  delivered: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  cancelled: "bg-red-50 text-red-700 ring-red-200",
+};
+
+/**
+ * Keep formatting server-side.
+ *
+ * This page is a Server Component, so there is no reason to ship formatting
+ * logic to the browser for values that are already known at render time.
+ */
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
 export default async function AdminOverviewPage() {
-  // getSessionUser() is request-cached (see lib/supabaseServer.ts) — this
-  // reuses the exact same verified-user result the parent layout already
-  // fetched, instead of hitting Supabase Auth a second time for this route.
   const user = await getSessionUser();
   const supabase = await supabaseServer();
 
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("id, full_name, totalPrice, status, created_at")
-    .order("created_at", { ascending: false });
+  /**
+   * Single round trip for the complete dashboard projection.
+   *
+   * We deliberately do NOT do:
+   *
+   *   - SELECT * FROM orders
+   *   - reduce() in JavaScript
+   *   - filter() in JavaScript
+   *   - slice() for chart data
+   *
+   * Those operations scale with the number of orders loaded into the
+   * application server. Aggregation belongs in PostgreSQL, where indexes and
+   * the query planner can do the work much closer to the data.
+   */
+  const { data, error } = await supabase.rpc("get_admin_dashboard");
 
-  const totalRevenue = orders?.reduce((sum, order) => sum + (order.totalPrice || 0), 0) || 0;
-  const totalOrders = orders?.length || 0;
-  const pendingOrders = orders?.filter((o) => o.status === "pending").length || 0;
-  const chartData =
-    orders
-      ?.slice(0, 6)
-      .reverse()
-      .map((order) => ({
-        name: order.full_name?.split(" ")[0] || "Customer",
-        amount: order.totalPrice,
-      })) || [];
+  if (error) {
+    console.error("ADMIN DASHBOARD ERROR:", error);
+
+    /**
+     * Throwing here allows Next.js error boundaries to handle the failure.
+     * Returning fake numbers would be materially worse for an admin system:
+     * stale/incorrect financial data is more dangerous than an explicit error.
+     */
+    throw new Error("Unable to load dashboard data.");
+  }
+
+  const dashboard = (data ?? EMPTY_DASHBOARD) as DashboardData;
 
   return (
-    <>
+    <div className="space-y-8 pb-10">
       <AdminPageHeader
         title="Store overview"
-        description="A concise view of current store activity."
+        description="Monitor revenue, orders, and the work that needs attention."
         userEmail={user?.email}
       />
 
-      <div className="mt-8 grid gap-px border border-stone-200 bg-stone-200 sm:grid-cols-3">
-        <div className="bg-white p-6">
-          <p className="eyebrow">Total sales</p>
-          <p className="mt-3 text-3xl font-semibold tracking-[-.05em]">
-            ${totalRevenue.toLocaleString()}
+      {/* ---------------------------------------------------------------
+          KPI layer
+          ---------------------------------------------------------------
+          These are deliberately stateless. No client component, no effect,
+          no subscription and no separate request per metric.
+      ---------------------------------------------------------------- */}
+      <section
+        aria-label="Store metrics"
+        className="grid gap-4 md:grid-cols-3"
+      >
+        <MetricCard
+          label="Total sales"
+          value={formatCurrency(Number(dashboard.total_sales) || 0)}
+          icon={DollarSign}
+          tone="green"
+          detail="Across all orders"
+        />
+
+        <MetricCard
+          label="Orders received"
+          value={dashboard.orders_received.toLocaleString()}
+          icon={ShoppingBag}
+          tone="blue"
+          detail="All-time order volume"
+        />
+
+        <MetricCard
+          label="Awaiting action"
+          value={dashboard.awaiting_action.toLocaleString()}
+          icon={Clock3}
+          tone="amber"
+          detail="Pending orders"
+          emphasis={dashboard.awaiting_action > 0}
+        />
+      </section>
+
+      {/* ---------------------------------------------------------------
+          Main analytics area
+          ---------------------------------------------------------------
+          The chart and recent-orders panel are independent UI concerns.
+          Keeping them separate makes each easier to evolve without turning
+          the dashboard into one large component tree.
+      ---------------------------------------------------------------- */}
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,.8fr)]">
+        <SalesChart data={dashboard.sales_performance} />
+
+        <RecentOrders orders={dashboard.recent_orders} />
+      </section>
+
+      <QuickActions />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Presentational components                                                   */
+/* -------------------------------------------------------------------------- */
+
+function MetricCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  tone,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon: typeof DollarSign;
+  tone: "green" | "blue" | "amber";
+  emphasis?: boolean;
+}) {
+  const tones = {
+    green: "bg-emerald-50 text-emerald-700",
+    blue: "bg-blue-50 text-blue-700",
+    amber: "bg-amber-50 text-amber-700",
+  };
+
+  return (
+    <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)] transition-shadow duration-200 hover:shadow-[0_12px_36px_rgb(28_29_26/0.07)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-stone-500">{label}</p>
+
+          <p className="mt-2 truncate text-[2rem] font-semibold tracking-[-.045em] text-stone-950">
+            {value}
+          </p>
+
+          <p
+            className={`mt-1 text-xs ${
+              emphasis
+                ? "font-semibold text-amber-700"
+                : "text-stone-500"
+            }`}
+          >
+            {detail}
           </p>
         </div>
-        <div className="bg-white p-6">
-          <p className="eyebrow">Orders received</p>
-          <p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{totalOrders}</p>
+
+        <div
+          className={`grid size-11 shrink-0 place-items-center rounded-xl ${tones[tone]}`}
+          aria-hidden="true"
+        >
+          <Icon size={20} strokeWidth={2} />
         </div>
-        <div className="bg-white p-6">
-          <p className="eyebrow">Awaiting action</p>
-          <p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{pendingOrders}</p>
+      </div>
+    </article>
+  );
+}
+
+function RecentOrders({
+  orders,
+}: {
+  orders: DashboardData["recent_orders"];
+}) {
+  return (
+    <section className="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow">Activity</p>
+
+          <h2 className="mt-1 text-lg font-semibold tracking-tight">
+            Recent orders
+          </h2>
+
+          <p className="mt-1 text-sm text-stone-500">
+            Your latest customer activity.
+          </p>
+        </div>
+
+        <Link
+          href="/admin/dashboard/orders"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50"
+        >
+          View all
+          <ArrowUpRight size={14} aria-hidden="true" />
+        </Link>
+      </div>
+
+      <div className="mt-5 divide-y divide-stone-100">
+        {orders.length > 0 ? (
+          orders.map((order) => (
+            <article
+              key={order.id}
+              className="flex items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div
+                  className="grid size-9 shrink-0 place-items-center rounded-lg bg-stone-50 text-stone-500"
+                  aria-hidden="true"
+                >
+                  <ClipboardList size={16} />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-stone-900">
+                    #{String(order.id).padStart(3, "0")}
+                  </p>
+
+                  <p className="truncate text-xs text-stone-500">
+                    {order.full_name || "Customer"} ·{" "}
+                    {formatDate(order.created_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-sm font-semibold text-stone-900">
+                  {formatCurrency(Number(order.totalPrice) || 0)}
+                </p>
+
+                <span
+                  className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
+                    STATUS_STYLES[order.status] ??
+                    "bg-stone-50 text-stone-600 ring-stone-200"
+                  }`}
+                >
+                  {order.status}
+                </span>
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="py-10 text-center">
+            <Package
+              className="mx-auto text-stone-300"
+              size={28}
+              aria-hidden="true"
+            />
+
+            <p className="mt-3 text-sm font-medium text-stone-700">
+              No orders yet
+            </p>
+
+            <p className="mt-1 text-xs text-stone-500">
+              New orders will appear here automatically.
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function QuickActions() {
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]">
+      <div className="flex items-center gap-3">
+        <div
+          className="grid size-9 place-items-center rounded-lg bg-emerald-50 text-[#285943]"
+          aria-hidden="true"
+        >
+          <Package size={17} />
+        </div>
+
+        <div>
+          <h2 className="text-base font-semibold">Quick actions</h2>
+          <p className="text-xs text-stone-500">
+            Jump directly into common store tasks.
+          </p>
         </div>
       </div>
 
-      <div className="mt-10">{chartData.length > 0 && <SalesChart data={chartData} />}</div>
-    </>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <QuickAction
+          href="/admin/dashboard/orders"
+          title="Manage orders"
+          description="Review and update fulfillment status."
+        />
+
+        <QuickAction
+          href="/admin/dashboard/products"
+          title="Manage products"
+          description="Edit inventory and catalog details."
+        />
+
+        <QuickAction
+          href="/admin/dashboard/products"
+          title="Add a product"
+          description="Publish a new item to your store."
+        />
+      </div>
+    </section>
+  );
+}
+
+function QuickAction({
+  href,
+  title,
+  description,
+}: {
+  href: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center justify-between gap-4 rounded-xl border border-stone-200 p-4 transition-[transform,background-color,border-color] duration-150 hover:-translate-y-0.5 hover:border-stone-300 hover:bg-stone-50"
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-stone-900">
+          {title}
+        </p>
+
+        <p className="mt-1 text-xs leading-5 text-stone-500">
+          {description}
+        </p>
+      </div>
+
+      <ArrowUpRight
+        className="shrink-0 text-stone-400 transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+        size={17}
+        aria-hidden="true"
+      />
+    </Link>
   );
 }

@@ -1,62 +1,67 @@
-// lib/supabaseServer.ts
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { cache } from 'react'
-
-// Helper function to create a Supabase client on the server
-export const supabaseServer = async () => {
-    // Get the Next.js server cookies store
-    const cookieStore = await cookies()
-
-    // Create and return a Supabase client with SSR (server-side) support
-    return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,      // Supabase project URL
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, // Supabase anon key
-        {
-            cookies: {
-                // Function to retrieve all cookies for Supabase auth
-                getAll() {
-                    return cookieStore.getAll()
-                },
-                // Function to set cookies returned by Supabase (e.g., session tokens)
-                setAll(cookiesToSet) {
-                    try {
-                        // Loop through all cookies to set and apply them to the cookie store
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        )
-                    } catch {
-                        // Fail silently if setting cookies fails
-                    }
-                },
-            },
-        }
-    )
-}
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { cache } from "react";
 
 /**
- * getSessionUser — the current user, verified once per request.
- * ---------------------------------------------------------------------------
- * PERFORMANCE NOTE: `supabase.auth.getUser()` is a network round trip (it
- * asks Supabase's Auth server to verify the JWT, unlike `getSession()` which
- * only decodes the cookie locally and is NOT safe for server-side
- * authorization). Before this helper existed, app/admin/dashboard/layout.tsx
- * AND every nested page.tsx each called `auth.getUser()` independently —
- * 1 layout + 3 possible pages = up to 2 redundant network calls added to
- * every admin navigation on top of the one middleware.ts already makes.
+ * Creates a Supabase SSR client bound to the current request cookies.
  *
- * Wrapping it in React's `cache()` makes it request-scoped memoization: the
- * first call in a given request actually hits Supabase, every other call to
- * this exact function *in the same request* (e.g. from both the layout and
- * its child page, which render concurrently in the same RSC pass) reuses
- * that result instead of firing a second network request. This does not
- * weaken the security check — it's the same verified call, just not
- * repeated — and middleware.ts's own getUser() is unaffected (middleware
- * runs in a separate request phase that React's cache() cannot see across).
- * ---------------------------------------------------------------------------
+ * Architectural decision:
+ * We intentionally keep this server-only. The browser client must never be
+ * responsible for privileged admin authorization decisions.
+ */
+export const supabaseServer = async () => {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            /**
+             * Server Components may execute in a read-only cookie context.
+             *
+             * Middleware is responsible for refreshing the auth session,
+             * so failing to mutate cookies here must not crash rendering.
+             */
+          }
+        },
+      },
+    }
+  );
+};
+
+/**
+ * Request-scoped auth memoization.
+ *
+ * Both the dashboard layout and its child route need the authenticated user.
+ * Without memoization, calling auth.getUser() from both places can result in
+ * duplicate Auth verification work during the same RSC render.
+ *
+ * React cache() is request-scoped here; it does NOT create a global user cache,
+ * therefore one user's authentication result cannot leak into another request.
  */
 export const getSessionUser = cache(async () => {
-    const supabase = await supabaseServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    return user
-})
+  const supabase = await supabaseServer();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("SUPABASE AUTH ERROR:", error);
+    return null;
+  }
+
+  return user;
+});
