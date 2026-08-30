@@ -13,17 +13,18 @@
  * and renders the sidebar — this file only owns the Overview content.
  * ---------------------------------------------------------------------------
  */
-import { supabaseServer } from "@/lib/supabaseServer";
+import { supabaseServer, getSessionUser } from "@/lib/supabaseServer";
 import SalesChart from "./Chart";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
+  // getSessionUser() is request-cached (see lib/supabaseServer.ts) — this
+  // reuses the exact same verified-user result the parent layout already
+  // fetched, instead of hitting Supabase Auth a second time for this route.
+  const user = await getSessionUser();
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const { data: orders } = await supabase
     .from("orders")

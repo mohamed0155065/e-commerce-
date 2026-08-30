@@ -5,9 +5,10 @@
  * Protected shell for the admin dashboard section. Wraps every route under
  * /admin/dashboard/* (page.tsx = Overview, orders/page.tsx = Orders,
  * products/page.tsx = Products) with:
- *   - The auth/redirect guard (also enforced by middleware.ts, re-checked
- *     here as defense in depth and because layout.tsx is what actually runs
- *     for every nested route).
+ *   - The auth/redirect guard (also enforced by middleware.ts; re-checked
+ *     here as defense in depth via getSessionUser(), which is request-scoped
+ *     cached — see lib/supabaseServer.ts — so this and the child page below
+ *     it don't each pay for a separate Supabase Auth network round trip).
  *   - The persistent AdminSidebar (now real <Link> navigation between the
  *     three routes below, not scroll-spy — see components/admin/AdminSidebar.tsx).
  *
@@ -21,7 +22,7 @@
  * scroll-spied between in-page sections.
  * ---------------------------------------------------------------------------
  */
-import { supabaseServer } from "@/lib/supabaseServer";
+import { getSessionUser } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
@@ -32,10 +33,10 @@ export default async function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Cached per-request (see lib/supabaseServer.ts#getSessionUser) — the
+  // child page rendering alongside this layout calls the same function and
+  // reuses this result instead of making its own network round trip.
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
   return (

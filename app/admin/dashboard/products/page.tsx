@@ -10,7 +10,7 @@
  * Wrapped by app/admin/dashboard/layout.tsx (auth guard + sidebar).
  * ---------------------------------------------------------------------------
  */
-import { supabaseServer } from "@/lib/supabaseServer";
+import { supabaseServer, getSessionUser } from "@/lib/supabaseServer";
 import AddProductForm from "@/components/admin/AddProductForm";
 import AdminProductsList from "@/components/admin/AdminProductsList";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -18,10 +18,10 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductsPage() {
+  // getSessionUser() is request-cached (see lib/supabaseServer.ts) — reuses
+  // the layout's already-verified user instead of a second Auth round trip.
+  const user = await getSessionUser();
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const { data: products } = await supabase
     .from("product")
