@@ -17,16 +17,13 @@ import Image from "next/image";
  * - Integrates with server action `addProductAction`
  */
 export default function AddProductForm() {
-    // Initial state for action feedback
     const initialState = { success: false, message: "" };
 
-    // useActionState: [state, formAction, isPending]
     const [state, formAction, isPending] = useActionState(
         addProductAction,
         initialState
     );
 
-    // Preview URL for uploaded image
     const [preview, setPreview] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
@@ -37,26 +34,23 @@ export default function AddProductForm() {
         };
     }, [preview]);
 
-    // Reset the form and file input on successful submission
     useEffect(() => {
         if (state?.success) {
-            // clear preview and revoke URL
             if (preview) {
                 URL.revokeObjectURL(preview);
                 setPreview(null);
             }
-            // Reset native form (clears file inputs too)
             formRef.current?.reset();
             if (fileRef.current) fileRef.current.value = "";
         }
     }, [state?.success]);
 
     return (
-        <div className="w-full max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="w-full max-w-4xl mx-auto bg-white p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-[2rem] border border-slate-200 shadow-sm">
 
             {/* Header */}
-            <div className="mb-10 space-y-2">
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+            <div className="mb-8 sm:mb-10 space-y-2">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900">
                     Publish Product
                 </h2>
                 <p className="text-sm text-slate-500 font-medium">
@@ -160,7 +154,6 @@ export default function AddProductForm() {
                         />
 
                         {preview ? (
-                            // next/image cannot render object URLs in server components directly, but this is a client component
                             <img src={preview} alt="Preview" className="h-40 object-contain rounded-xl" />
                         ) : (
                             <>

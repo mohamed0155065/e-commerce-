@@ -7,7 +7,10 @@
  * Admin dashboard "Orders" section.
  *
  * Responsibility:
- *   - Renders the orders table (customer, address, total, items, status).
+ *   - Renders the orders list (customer, address, total, items, status) —
+ *     as a table on desktop (>= lg) and as stacked cards on mobile/tablet,
+ *     since an HTML table forced into `overflow-x-auto` on a touch device
+ *     is a poor interaction (see OrderRow / OrderCard split below).
  *   - Lets the admin change an order's status via a <select>, with an
  *     optimistic UI update + rollback if the server action fails.
  *   - Owns the realtime "automation" layer: it subscribes to Postgres
@@ -30,7 +33,7 @@
 
 import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Package } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { updateOrderStatusAction } from "@/app/admin/action";
@@ -183,28 +186,28 @@ export default function AdminOrdersList({
   );
 
   return (
-    <section className="bg-white rounded-xl border border-stone-200 p-6">
+    <section className="rounded-xl border border-stone-200 bg-white p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Orders</h3>
         <span className="text-xs text-stone-500">{sortedOrders.length} total</span>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-sm text-stone-600">
-              <th className="py-3">Customer</th>
-              <th className="py-3">Contact</th>
-              <th className="py-3">Location</th>
-              <th className="py-3">Total</th>
-              <th className="py-3">Placed</th>
-              <th className="py-3">Status</th>
-              <th className="py-3">Items</th>
-            </tr>
-          </thead>
-          <tbody>
+      {sortedOrders.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <>
+          {/*
+            -----------------------------------------------------------------
+            Mobile / tablet: card list (< lg). Same data + same handlers as
+            the desktop table (handleStatusChange, toggleExpanded), just a
+            layout better suited to a narrow, touch-driven viewport — a wide
+            multi-column table would either truncate the address/contact
+            columns unreadably or force sideways scrolling.
+            -----------------------------------------------------------------
+          */}
+          <ul className="mt-4 space-y-3 lg:hidden">
             {sortedOrders.map((order) => (
-              <OrderRow
+              <OrderCard
                 key={order.id}
                 order={order}
                 isExpanded={expandedId === order.id}
@@ -213,17 +216,38 @@ export default function AdminOrdersList({
                 onStatusChange={handleStatusChange}
               />
             ))}
+          </ul>
 
-            {sortedOrders.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-8 text-center text-sm text-stone-500">
-                  No orders yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          {/* Desktop (>= lg): full table, unchanged behaviour. */}
+          <div className="mt-4 hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[860px] text-left">
+              <thead>
+                <tr className="text-sm text-stone-600">
+                  <th className="py-3">Customer</th>
+                  <th className="py-3">Contact</th>
+                  <th className="py-3">Location</th>
+                  <th className="py-3">Total</th>
+                  <th className="py-3">Placed</th>
+                  <th className="py-3">Status</th>
+                  <th className="py-3">Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedOrders.map((order) => (
+                  <OrderRow
+                    key={order.id}
+                    order={order}
+                    isExpanded={expandedId === order.id}
+                    isUpdating={updatingId === order.id}
+                    onToggleExpanded={toggleExpanded}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -304,28 +328,139 @@ const OrderRow = React.memo(function OrderRow({
       {isExpanded && (
         <tr className="bg-stone-50">
           <td colSpan={7} className="px-3 py-4">
-            <ul className="divide-y divide-stone-200">
-              {items.map((item, idx) => (
-                <li key={`${order.id}-${item.id}-${idx}`} className="flex items-center gap-3 py-2">
-                  <div className="relative h-10 w-10 shrink-0 bg-white border border-stone-200">
-                    <Image src={item.Image} alt={item.Name} fill sizes="40px" className="object-contain" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{item.Name}</p>
-                    <p className="text-xs text-stone-500">Qty {item.quantity}</p>
-                  </div>
-                  <p className="text-sm font-medium">
-                    ${(Number(item.Price) * Number(item.quantity)).toLocaleString()}
-                  </p>
-                </li>
-              ))}
-              {items.length === 0 && (
-                <li className="py-2 text-sm text-stone-500">No item details available.</li>
-              )}
-            </ul>
+            <ItemsList items={items} orderId={order.id} />
           </td>
         </tr>
       )}
     </>
   );
 });
+
+/**
+ * OrderCard — mobile/tablet equivalent of OrderRow. Same memoization
+ * rationale: an optimistic status update on one order shouldn't repaint
+ * every other card in the list.
+ */
+const OrderCard = React.memo(function OrderCard({
+  order,
+  isExpanded,
+  isUpdating,
+  onToggleExpanded,
+  onStatusChange,
+}: {
+  order: Order;
+  isExpanded: boolean;
+  isUpdating: boolean;
+  onToggleExpanded: (id: number) => void;
+  onStatusChange: (id: number, status: OrderStatus) => void;
+}) {
+  const items = useMemo(() => parseOrderItems(order.items), [order.items]);
+
+  return (
+    <li className="rounded-lg border border-stone-200 p-3 sm:p-4">
+      {/* Customer + total */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-stone-900">
+            {order.full_name}
+          </p>
+          <p className="truncate text-xs text-stone-500">{order.email}</p>
+        </div>
+
+        <p className="shrink-0 text-sm font-semibold text-stone-900">
+          ${Number(order.totalPrice || 0).toLocaleString()}
+        </p>
+      </div>
+
+      {/* Location + date */}
+      <div className="mt-2 text-xs text-stone-500">
+        <p className="truncate" title={order.address}>
+          {order.city ? `${order.city} · ` : ""}
+          {order.address}
+        </p>
+        <p className="mt-0.5">
+          {order.phone} · {new Date(order.created_at).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Status + item toggle */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3">
+        <div className="flex items-center gap-2">
+          <OrderStatusBadge status={order.status} />
+          {isUpdating ? (
+            <Loader2 size={14} className="animate-spin text-stone-400" />
+          ) : (
+            <select
+              aria-label={`Change status for order ${order.id}`}
+              value={order.status}
+              disabled={isUpdating}
+              onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
+              className="min-h-8 rounded-md border border-stone-200 bg-white px-2 py-1 text-xs disabled:opacity-50"
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onToggleExpanded(order.id)}
+          className="flex min-h-8 items-center gap-1 text-xs font-medium text-stone-600 hover:text-[#285943]"
+        >
+          {items.length} item{items.length !== 1 ? "s" : ""}
+          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      </div>
+
+      {isExpanded && (
+        <div className="mt-3 border-t border-stone-100 pt-3">
+          <ItemsList items={items} orderId={order.id} />
+        </div>
+      )}
+    </li>
+  );
+});
+
+/**
+ * ItemsList — the expanded line-item breakdown, shared verbatim between the
+ * desktop table row and the mobile card so the two surfaces never drift.
+ */
+function ItemsList({ items, orderId }: { items: OrderItem[]; orderId: number }) {
+  return (
+    <ul className="divide-y divide-stone-200">
+      {items.map((item, idx) => (
+        <li key={`${orderId}-${item.id}-${idx}`} className="flex items-center gap-3 py-2">
+          <div className="relative h-10 w-10 shrink-0 bg-white border border-stone-200">
+            <Image src={item.Image} alt={item.Name} fill sizes="40px" className="object-contain" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm">{item.Name}</p>
+            <p className="text-xs text-stone-500">Qty {item.quantity}</p>
+          </div>
+          <p className="text-sm font-medium">
+            ${(Number(item.Price) * Number(item.quantity)).toLocaleString()}
+          </p>
+        </li>
+      ))}
+      {items.length === 0 && (
+        <li className="py-2 text-sm text-stone-500">No item details available.</li>
+      )}
+    </ul>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="mt-6 py-10 text-center">
+      <Package className="mx-auto text-stone-300" size={28} aria-hidden="true" />
+      <p className="mt-3 text-sm font-medium text-stone-700">No orders yet</p>
+      <p className="mt-1 text-xs text-stone-500">
+        New orders will appear here automatically.
+      </p>
+    </div>
+  );
+}

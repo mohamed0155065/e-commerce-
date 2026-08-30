@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 
 import {
@@ -116,11 +115,13 @@ export default async function AdminOverviewPage() {
 
       {/* ------------------------------------------------------------------ */}
       {/* KPI cards                                                          */}
+      {/* 1 column on mobile, 2 on small tablets, 3 from `lg` — avoids       */}
+      {/* jumping straight from a single column to three.                    */}
       {/* ------------------------------------------------------------------ */}
 
       <section
         aria-label="Store metrics"
-        className="grid gap-4 md:grid-cols-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         <MetricCard
           label="Total sales"
@@ -150,9 +151,10 @@ export default async function AdminOverviewPage() {
 
       {/* ------------------------------------------------------------------ */}
       {/* Analytics + recent orders                                          */}
+      {/* Stacked on everything below `lg`; side-by-side from `lg` up.       */}
       {/* ------------------------------------------------------------------ */}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,.8fr)]">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,.8fr)]">
         <SalesChart data={dashboard.sales_performance} />
 
         <RecentOrders orders={dashboard.recent_orders} />
@@ -206,13 +208,15 @@ function MetricCard({
 
   return (
     <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)] transition-shadow duration-200 hover:shadow-[0_12px_36px_rgb(28_29_26/0.07)]">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
           <p className="text-sm font-medium text-stone-500">
             {label}
           </p>
 
-          <p className="mt-2 truncate text-[2rem] font-semibold tracking-[-.045em] text-stone-950">
+          {/* Smaller on mobile so a value like "$12,500" plus the icon
+              never fight for width inside a narrow card. */}
+          <p className="mt-2 truncate text-[1.65rem] font-semibold tracking-[-.03em] text-stone-950 sm:text-[2rem] sm:tracking-[-.045em]">
             {value}
           </p>
 
@@ -290,10 +294,9 @@ function RecentOrders({
                 </p>
 
                 <span
-                  className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
-                    STATUS_STYLES[order.status] ||
+                  className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${STATUS_STYLES[order.status] ||
                     "bg-stone-50 text-stone-600 ring-stone-200"
-                  }`}
+                    }`}
                 >
                   {order.status}
                 </span>
@@ -368,7 +371,7 @@ function QuickActions() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <QuickAction
           href="/admin/dashboard/orders"
           title="Manage orders"

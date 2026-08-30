@@ -1,79 +1,121 @@
 
 import type { ReactNode } from "react";
 
+type AdminPageHeaderProps = {
+  eyebrow?: string;
+  title: string;
+  description: string;
+  rightSlot?: ReactNode;
+};
+
+/**
+ * Shared admin page header.
+ *
+ * Responsibilities:
+ * - Establish page hierarchy.
+ * - Provide consistent spacing across admin routes.
+ * - Render optional page-specific actions.
+ *
+ * Visual tokens come from globals.css / Tailwind theme.
+ * The component intentionally contains no hard-coded brand colors.
+ */
 export default function AdminPageHeader({
   eyebrow = "WELCOME BACK",
   title,
   description,
   rightSlot,
-}: {
-  eyebrow?: string;
-  title: string;
-  description: string;
-
-  /**
-   * Optional page-specific action rendered on the right side of the header.
-   *
-   * Keeping this generic allows the header to be reused across
-   * different admin routes without coupling it to page-specific UI.
-   */
-  rightSlot?: ReactNode;
-}) {
+}: AdminPageHeaderProps) {
   return (
-    <header>
-      {/* ------------------------------------------------------------------ */}
-      {/* Eyebrow                                                             */}
-      {/* ------------------------------------------------------------------ */}
+    <header className="w-full">
+      {/* ------------------------------------------------------------------
+          Eyebrow
+      ------------------------------------------------------------------ */}
 
       <p
         className="
-          flex items-center gap-1.5
-          text-xs font-semibold
-          uppercase tracking-wide
+          text-[11px]
+          font-bold
+          uppercase
+          tracking-[0.14em]
           text-primary
+          sm:text-xs
         "
       >
         {eyebrow}
       </p>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Main header                                                         */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ------------------------------------------------------------------
+          Main header content
+
+          Mobile:
+          - Stacked layout
+          - Full-width actions
+
+          Desktop:
+          - Content and actions sit beside each other
+      ------------------------------------------------------------------ */}
 
       <div
         className="
-          mt-2
-          flex flex-col gap-4
-          border-b border-stone-300
-          pb-7
-          sm:flex-row
-          sm:items-end
-          sm:justify-between
+          mt-2.5
+          flex
+          flex-col
+          gap-4
+          border-b
+          border-line
+          pb-6
+
+          sm:mt-3
+          sm:pb-7
+
+          md:flex-row
+          md:items-end
+          md:justify-between
         "
       >
-        <div>
+        <div className="min-w-0">
           <h1
             className="
-              text-[32px]
+              text-[26px]
               font-semibold
-              leading-tight
-              tracking-[-0.055em]
-              text-stone-950
+              leading-[1.15]
+              tracking-[-0.035em]
+              text-foreground
+
+              sm:text-[30px]
+              md:text-[32px]
             "
           >
             {title}
           </h1>
 
-          <p className="mt-2 text-sm text-stone-600">
+          <p
+            className="
+              mt-2
+              max-w-2xl
+              text-[13px]
+              leading-5
+              text-muted
+
+              sm:text-sm
+            "
+          >
             {description}
           </p>
         </div>
 
-        {rightSlot && (
-          <div className="shrink-0">
+        {rightSlot ? (
+          <div
+            className="
+              w-full
+              shrink-0
+
+              md:w-auto
+            "
+          >
             {rightSlot}
           </div>
-        )}
+        ) : null}
       </div>
     </header>
   );

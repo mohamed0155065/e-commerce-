@@ -18,8 +18,6 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductsPage() {
-  // getSessionUser() is request-cached (see lib/supabaseServer.ts) — reuses
-  // the layout's already-verified user instead of a second Auth round trip.
   const user = await getSessionUser();
   const supabase = await supabaseServer();
 

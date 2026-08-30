@@ -16,6 +16,20 @@ type SalesPoint = {
 };
 
 /**
+ * Compact, locale-aware number formatting for axis ticks (1200 -> "1.2K").
+ * Prevents wide 4-5 digit labels from forcing the Y-axis column wider than
+ * its allotted width, which is what was clipping the numbers before.
+ */
+const compactFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+function formatTick(value: number) {
+  return compactFormatter.format(value);
+}
+
+/**
  * Recharts requires a client boundary, so only this leaf component becomes
  * client-side.
  *
@@ -33,12 +47,19 @@ export default function SalesChart({
   );
 
   return (
-    <section className="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="min-w-0 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]">
+      {/* ------------------------------------------------------------------ */}
+      {/* Header                                                             */}
+      {/* Wraps to a second row on narrow screens instead of squeezing the   */}
+      {/* "Last 7 days" pill against the title.                              */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="eyebrow">Performance</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#285943]">
+            Performance
+          </p>
 
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
+          <h2 className="mt-1.5 text-lg sm:text-xl font-semibold tracking-tight text-stone-950">
             Sales performance
           </h2>
 
@@ -47,12 +68,12 @@ export default function SalesChart({
           </p>
         </div>
 
-        <span className="rounded-lg bg-stone-50 px-3 py-2 text-xs font-medium text-stone-600">
+        <span className="inline-flex w-fit items-center rounded-lg bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 ring-1 ring-inset ring-stone-200">
           Last 7 days
         </span>
       </div>
 
-      <div className="mt-6 h-[280px] w-full">
+      <div className="mt-6 h-[240px] sm:h-[280px] w-full">
         {data.length > 0 ? (
           <ResponsiveContainer
             width="100%"
@@ -63,8 +84,8 @@ export default function SalesChart({
               data={data}
               margin={{
                 top: 12,
-                right: 4,
-                left: -18,
+                right: 8,
+                left: 4,
                 bottom: 0,
               }}
             >
@@ -92,7 +113,8 @@ export default function SalesChart({
                   fill: "#8a8d86",
                   fontSize: 11,
                 }}
-                width={42}
+                width={56}
+                tickFormatter={formatTick}
                 domain={[0, Math.max(maxValue, 100)]}
               />
 
@@ -117,12 +139,6 @@ export default function SalesChart({
                 fill="var(--brand)"
                 radius={[6, 6, 2, 2]}
                 barSize={28}
-
-                /**
-                 * The chart communicates business data; animation does not
-                 * add information. Disabling it reduces main-thread work and
-                 * makes navigation feel immediate on slower machines.
-                 */
                 isAnimationActive={false}
               />
             </BarChart>

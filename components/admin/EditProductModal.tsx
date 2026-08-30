@@ -1,241 +1,704 @@
+
 "use client";
 
-import { useActionState, useState, useEffect, useRef } from "react";
-import { updateProductAction } from "@/app/admin/action";
 import {
-    Upload,
-    Loader2,
+    useActionState,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
+
+import {
     AlertCircle,
     CheckCircle2,
     ImageIcon,
+    Loader2,
+    Upload,
     X,
 } from "lucide-react";
+
+import { updateProductAction } from "@/app/admin/action";
 import { Product } from "@/types";
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+const ACCEPTED_IMAGE_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+];
+
+const INITIAL_STATE = {
+    success: false,
+    message: "",
+};
+
+type EditProductModalProps = {
+    product: Product;
+    onClose: () => void;
+    onSuccess: (updated: Product) => void;
+};
 
 export default function EditProductModal({
     product,
     onClose,
     onSuccess,
-}: {
-    product: Product;
-    onClose: () => void;
-    onSuccess: (updated: Product) => void;
-}) {
-    const initialState = { success: false, message: "" };
+}: EditProductModalProps) {
     const [state, formAction, isPending] = useActionState(
         updateProductAction,
-        initialState
+        INITIAL_STATE
     );
 
-    const [preview, setPreview] = useState<string | null>(null);
-    const fileRef = useRef<HTMLInputElement | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [imageError, setImageError] = useState<string | null>(null);
 
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    /*
+     * Revoke the current object URL when the component unmounts
+     * or when a new preview URL replaces it.
+     *
+     * This prevents unnecessary blob URLs from staying alive
+     * in browser memory.
+     */
     useEffect(() => {
         return () => {
-            if (preview) URL.revokeObjectURL(preview);
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
         };
-    }, [preview]);
+    }, [previewUrl]);
 
-    // Once the update succeeds, hand the fresh product back to the parent and close the modal
+    /*
+     * Close the modal after a successful server mutation.
+     *
+     * The small delay allows the success message to be visible
+     * instead of immediately removing the modal.
+     */
     useEffect(() => {
-        if (state?.success && state.product) {
-            const timer = setTimeout(() => {
-                onSuccess(state.product);
-                onClose();
-            }, 800);
-            return () => clearTimeout(timer);
+        if (!state?.success || !state.product) {
+            return;
         }
-    }, [state?.success]);
+
+        const timer = window.setTimeout(() => {
+            onSuccess(state.product);
+            onClose();
+        }, 600);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [state?.success, state?.product, onSuccess, onClose]);
+
+    /*
+     * Escape-to-close.
+     *
+     * We intentionally don't close the modal while the form
+     * mutation is pending.
+     */
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape" && !isPending) {
+                onClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [isPending, onClose]);
+
+    const handleImageChange = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        /*
+         * Client-side validation is for UX only.
+         *
+         * updateProductAction MUST validate the file again
+         * on the server before processing the upload.
+         */
+        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+            setImageError(
+                "Please select a JPG, PNG, or WEBP image."
+            );
+
+            event.target.value = "";
+            return;
+        }
+
+        if (file.size > MAX_IMAGE_SIZE) {
+            setImageError(
+                "Image size must be smaller than 5 MB."
+            );
+
+            event.target.value = "";
+            return;
+        }
+
+        setImageError(null);
+
+        /*
+         * Replace the previous blob URL.
+         *
+         * The previous URL is revoked immediately so selecting
+         * several images doesn't unnecessarily consume memory.
+         */
+        setPreviewUrl((previousUrl) => {
+            if (previousUrl) {
+                URL.revokeObjectURL(previousUrl);
+            }
+
+            return URL.createObjectURL(file);
+        });
+    };
+
+    const handleClose = () => {
+        if (isPending) {
+            return;
+        }
+
+        onClose();
+    };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-            <div className="w-full max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-[2rem] border border-slate-200 shadow-sm relative my-8">
+        <div
+            className="
+                fixed inset-0 z-50
+                flex items-start justify-center
+                overflow-y-auto
+                overscroll-contain
+                bg-black/50
+                p-3
+                sm:items-center sm:p-4
+            "
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-product-title"
+            aria-describedby="edit-product-description"
+        >
+            {/*
+             * Important:
+             * No body overflow locking here.
+             *
+             * The overlay itself owns the vertical scrolling,
+             * which keeps the modal usable on short screens
+             * and mobile devices.
+             */}
+            <div
+                className="
+                    relative
+                    my-3
+                    w-full
+                    max-w-4xl
+                    shrink-0
+                    rounded-2xl
+                    border
+                    border-slate-200
+                    bg-white
+                    shadow-xl
+                    sm:my-6
+                    sm:rounded-[2rem]
+                    lg:my-8
+                "
+            >
+                {/* =====================================================
+                    Header
+                ====================================================== */}
 
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 transition-all"
-                    title="Close"
-                >
-                    <X size={20} />
-                </button>
+                <div className="p-5 sm:p-7 md:p-8 lg:p-10">
+                    <button
+                        type="button"
+                        onClick={handleClose}
+                        disabled={isPending}
+                        aria-label="Close edit product modal"
+                        title="Close"
+                        className="
+                            absolute
+                            right-3
+                            top-3
+                            inline-flex
+                            min-h-10
+                            min-w-10
+                            items-center
+                            justify-center
+                            rounded-full
+                            text-slate-500
+                            transition-colors
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                            focus-visible:outline-none
+                            focus-visible:ring-2
+                            focus-visible:ring-indigo-600
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                            sm:right-5
+                            sm:top-5
+                        "
+                    >
+                        <X
+                            size={20}
+                            aria-hidden="true"
+                        />
+                    </button>
 
-                <div className="mb-10 space-y-2">
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-                        Edit Product
-                    </h2>
-                    <p className="text-sm text-slate-500 font-medium">
-                        Update details for &quot;{product.Name}&quot;.
-                    </p>
+                    <div
+                        className="
+                            space-y-1.5
+                            pr-12
+                            sm:space-y-2
+                        "
+                    >
+                        <h2
+                            id="edit-product-title"
+                            className="
+                                text-xl
+                                font-bold
+                                tracking-tight
+                                text-slate-900
+                                sm:text-2xl
+                                md:text-3xl
+                            "
+                        >
+                            Edit Product
+                        </h2>
+
+                        <p
+                            id="edit-product-description"
+                            className="
+                                max-w-2xl
+                                text-xs
+                                font-medium
+                                leading-5
+                                text-slate-500
+                                sm:text-sm
+                            "
+                        >
+                            Update details for &quot;
+                            {product.Name}
+                            &quot;.
+                        </p>
+                    </div>
                 </div>
 
-                <form action={formAction} className="space-y-8">
-                    {/* Hidden field to pass the product id */}
-                    <input type="hidden" name="id" value={product.id} />
+                {/* =====================================================
+                    Form
+                ====================================================== */}
 
-                    <p className="text-xs text-red-500">DEBUG ID: {String(product.id)} (type: {typeof product.id})</p>
+                <form
+                    action={formAction}
+                    className="
+                        space-y-6
+                        border-t
+                        border-slate-100
+                        p-5
+                        sm:space-y-7
+                        sm:p-7
+                        md:p-8
+                        lg:p-10
+                    "
+                >
+                    <input
+                        type="hidden"
+                        name="id"
+                        value={product.id}
+                    />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                                Product Title
-                            </label>
+                    {/* =================================================
+                        Product title / price
+                    ================================================== */}
+
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            gap-5
+                            md:grid-cols-2
+                        "
+                    >
+                        <FormField label="Product Title">
                             <input
                                 name="name"
                                 required
                                 defaultValue={product.Name}
-                                className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                                autoComplete="off"
+                                disabled={isPending}
+                                className={inputClassName}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                                Price ($)
-                            </label>
+                        <FormField label="Price ($)">
                             <input
                                 name="price"
                                 required
                                 type="number"
+                                min="0"
                                 step="0.01"
                                 defaultValue={product.Price}
-                                className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                                inputMode="decimal"
+                                disabled={isPending}
+                                className={inputClassName}
                             />
-                        </div>
+                        </FormField>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                                Category
-                            </label>
+                    {/* =================================================
+                        Category / stock / status
+                    ================================================== */}
+
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            gap-5
+                            md:grid-cols-3
+                        "
+                    >
+                        <FormField label="Category">
                             <select
                                 name="category"
                                 required
                                 defaultValue={product.Category}
-                                className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                                disabled={isPending}
+                                className={inputClassName}
                             >
-                                <option value="laptop">Laptop</option>
-                                <option value="phones">Phones</option>
-                                <option value="smart_watches">Smart Watches</option>
-                                <option value="headphones">Headphones</option>
-                                <option value="earbuds">Earbuds</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
+                                <option value="laptop">
+                                    Laptop
+                                </option>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                                Stock quantity
-                            </label>
+                                <option value="phones">
+                                    Phones
+                                </option>
+
+                                <option value="smart_watches">
+                                    Smart Watches
+                                </option>
+
+                                <option value="headphones">
+                                    Headphones
+                                </option>
+
+                                <option value="earbuds">
+                                    Earbuds
+                                </option>
+
+                                <option value="other">
+                                    Other
+                                </option>
+                            </select>
+                        </FormField>
+
+                        <FormField label="Stock Quantity">
                             <input
                                 name="stock"
                                 type="number"
                                 min={0}
+                                step={1}
                                 defaultValue={product.Stock}
-                                className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                                inputMode="numeric"
+                                disabled={isPending}
+                                className={inputClassName}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                                Status
-                            </label>
+                        <FormField label="Status">
                             <select
                                 name="status"
                                 defaultValue={product.Status}
-                                className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                                disabled={isPending}
+                                className={inputClassName}
                             >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="active">
+                                    Active
+                                </option>
+
+                                <option value="inactive">
+                                    Inactive
+                                </option>
                             </select>
-                        </div>
+                        </FormField>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Description
-                        </label>
+                    {/* =================================================
+                        Description
+                    ================================================== */}
+
+                    <FormField label="Description">
                         <textarea
                             name="description"
                             required
                             defaultValue={product.Description}
-                            className="w-full p-4 h-32 rounded-xl border text-taupe-950 border-slate-200 resize-none focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                            rows={5}
+                            disabled={isPending}
+                            className={`
+                                ${inputClassName}
+                                min-h-32
+                                resize-y
+                            `}
                         />
-                    </div>
+                    </FormField>
 
-                    {/* Image Upload — optional on edit */}
+                    {/* =================================================
+                        Product Image
+                    ================================================== */}
+
                     <div className="space-y-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Product Image
-                        </label>
-                        <p className="text-xs text-slate-400 -mt-1">
-                            Leave empty to keep the current image.
-                        </p>
+                        <div>
+                            <label
+                                htmlFor="product-image"
+                                className={labelClassName}
+                            >
+                                Product Image
+                            </label>
 
-                        <div className="relative group border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:border-indigo-600 transition-all cursor-pointer">
+                            <p
+                                className="
+                                    mt-1
+                                    text-xs
+                                    text-slate-400
+                                "
+                            >
+                                Leave empty to keep the current
+                                image. Maximum 5 MB.
+                            </p>
+                        </div>
+
+                        <div
+                            className="
+                                relative
+                                flex
+                                min-h-48
+                                flex-col
+                                items-center
+                                justify-center
+                                overflow-hidden
+                                rounded-2xl
+                                border-2
+                                border-dashed
+                                border-slate-300
+                                bg-slate-50/50
+                                p-5
+                                text-center
+                                transition-colors
+                                hover:border-indigo-500
+                                hover:bg-indigo-50/20
+                            "
+                        >
                             <input
                                 ref={fileRef}
+                                id="product-image"
                                 name="image"
                                 type="file"
-                                accept="image/*"
-                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) setPreview(URL.createObjectURL(file));
-                                }}
+                                accept="
+                                    image/jpeg,
+                                    image/png,
+                                    image/webp
+                                "
+                                disabled={isPending}
+                                onChange={handleImageChange}
+                                className="
+                                    absolute
+                                    inset-0
+                                    z-10
+                                    h-full
+                                    w-full
+                                    cursor-pointer
+                                    opacity-0
+                                    disabled:cursor-not-allowed
+                                "
                             />
 
-                            {preview ? (
-                                <img src={preview} alt="New preview" className="h-40 object-contain rounded-xl" />
+                            {previewUrl ? (
+                                <img
+                                    src={previewUrl}
+                                    alt="New product preview"
+                                    className="
+                                        max-h-48
+                                        max-w-full
+                                        rounded-xl
+                                        object-contain
+                                    "
+                                />
                             ) : product.Image ? (
-                                <img src={product.Image} alt="Current" className="h-40 object-contain rounded-xl" />
+                                <img
+                                    src={product.Image}
+                                    alt={`${product.Name} current image`}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="
+                                        max-h-48
+                                        max-w-full
+                                        rounded-xl
+                                        object-contain
+                                    "
+                                />
                             ) : (
                                 <>
-                                    <ImageIcon className="w-10 h-10 text-slate-400 mb-3" />
-                                    <p className="text-sm font-semibold text-slate-600">
+                                    <ImageIcon
+                                        aria-hidden="true"
+                                        className="
+                                            mb-3
+                                            h-9
+                                            w-9
+                                            text-slate-400
+                                        "
+                                    />
+
+                                    <p
+                                        className="
+                                            text-sm
+                                            font-semibold
+                                            text-slate-600
+                                        "
+                                    >
                                         Click to upload a new image
                                     </p>
-                                    <span className="text-xs text-slate-400">
-                                        PNG, JPG, WEBP supported
+
+                                    <span
+                                        className="
+                                            mt-1
+                                            text-xs
+                                            text-slate-400
+                                        "
+                                    >
+                                        JPG, PNG or WEBP · Max 5 MB
                                     </span>
                                 </>
                             )}
                         </div>
+
+                        {imageError && (
+                            <p
+                                role="alert"
+                                className="
+                                    flex
+                                    items-center
+                                    gap-2
+                                    text-xs
+                                    font-medium
+                                    text-red-600
+                                "
+                            >
+                                <AlertCircle
+                                    size={15}
+                                    aria-hidden="true"
+                                />
+
+                                {imageError}
+                            </p>
+                        )}
                     </div>
+
+                    {/* =================================================
+                        Server Action feedback
+                    ================================================== */}
 
                     {state?.message && (
                         <div
-                            className={`p-4 rounded-xl flex items-center gap-3 text-sm font-semibold ${state.success
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-red-50 text-red-700"
-                                }`}
+                            role={
+                                state.success
+                                    ? "status"
+                                    : "alert"
+                            }
+                            aria-live="polite"
+                            className={`
+                                flex
+                                items-start
+                                gap-3
+                                rounded-xl
+                                p-3.5
+                                text-sm
+                                font-semibold
+                                sm:p-4
+                                ${
+                                    state.success
+                                        ? "bg-emerald-50 text-emerald-700"
+                                        : "bg-red-50 text-red-700"
+                                }
+                            `}
                         >
-                            {state.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                            {state.message}
+                            {state.success ? (
+                                <CheckCircle2
+                                    size={18}
+                                    className="mt-0.5 shrink-0"
+                                    aria-hidden="true"
+                                />
+                            ) : (
+                                <AlertCircle
+                                    size={18}
+                                    className="mt-0.5 shrink-0"
+                                    aria-hidden="true"
+                                />
+                            )}
+
+                            <span>
+                                {state.message}
+                            </span>
                         </div>
                     )}
 
-                    <div className="flex gap-4">
+                    {/* =================================================
+                        Actions
+                    ================================================== */}
+
+                    <div
+                        className="
+                            flex
+                            flex-col-reverse
+                            gap-3
+                            border-t
+                            border-slate-100
+                            pt-5
+                            sm:flex-row
+                            sm:justify-end
+                        "
+                    >
                         <button
                             type="button"
-                            onClick={onClose}
-                            className="flex-1 py-4 rounded-xl border border-slate-300 text-slate-700 font-bold tracking-wide hover:bg-slate-50 transition-all"
+                            onClick={handleClose}
+                            disabled={isPending}
+                            className={`
+                                ${secondaryButtonClassName}
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                            `}
                         >
                             Cancel
                         </button>
 
                         <button
+                            type="submit"
                             disabled={isPending}
-                            className="flex-1 py-4 rounded-xl bg-slate-900 text-white font-bold tracking-wide hover:bg-indigo-600 transition-all disabled:bg-slate-300 flex items-center justify-center gap-3"
+                            className={`
+                                ${primaryButtonClassName}
+                                disabled:cursor-not-allowed
+                                disabled:bg-slate-300
+                            `}
                         >
                             {isPending ? (
                                 <>
-                                    <Loader2 className="animate-spin" size={18} />
+                                    <Loader2
+                                        className="animate-spin"
+                                        size={17}
+                                        aria-hidden="true"
+                                    />
+
                                     Saving...
                                 </>
                             ) : (
                                 <>
-                                    <Upload size={18} />
+                                    <Upload
+                                        size={17}
+                                        aria-hidden="true"
+                                    />
+
                                     Save Changes
                                 </>
                             )}
@@ -246,3 +709,104 @@ export default function EditProductModal({
         </div>
     );
 }
+
+/* ==========================================================================
+   Shared UI
+   ========================================================================== */
+
+const labelClassName = `
+    block
+    text-[11px]
+    font-bold
+    uppercase
+    tracking-[0.12em]
+    text-slate-500
+    sm:text-xs
+`;
+
+const inputClassName = `
+    mt-1
+    w-full
+    rounded-xl
+    border
+    border-slate-200
+    bg-white
+    px-3.5
+    py-3
+    text-sm
+    text-slate-950
+    outline-none
+    transition-[border-color,box-shadow]
+    placeholder:text-slate-400
+    focus:border-indigo-500
+    focus:ring-2
+    focus:ring-indigo-500/20
+    disabled:cursor-not-allowed
+    disabled:bg-slate-50
+    sm:px-4
+    sm:py-3.5
+`;
+
+const secondaryButtonClassName = `
+    inline-flex
+    min-h-11
+    flex-1
+    items-center
+    justify-center
+    rounded-xl
+    border
+    border-slate-300
+    bg-white
+    px-5
+    text-sm
+    font-bold
+    tracking-wide
+    text-slate-700
+    transition-colors
+    hover:bg-slate-50
+    focus-visible:outline-none
+    focus-visible:ring-2
+    focus-visible:ring-slate-400
+    sm:flex-none
+`;
+
+const primaryButtonClassName = `
+    inline-flex
+    min-h-11
+    flex-1
+    items-center
+    justify-center
+    gap-2.5
+    rounded-xl
+    bg-slate-900
+    px-5
+    text-sm
+    font-bold
+    tracking-wide
+    text-white
+    transition-colors
+    hover:bg-indigo-600
+    focus-visible:outline-none
+    focus-visible:ring-2
+    focus-visible:ring-indigo-500
+    sm:flex-none
+`;
+
+function FormField({
+    label,
+    children,
+}: {
+    label: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="space-y-1">
+            <label className={labelClassName}>
+                {label}
+            </label>
+
+            {children}
+        </div>
+    );
+}
+
