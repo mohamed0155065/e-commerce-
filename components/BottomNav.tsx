@@ -1,11 +1,10 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, ShoppingBag, User } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useCartStore } from "@/store/useCartStore";
-
+import { useHydration } from "@/store/useHydration";
+import { useEffect } from "react";
 const ITEMS = [
   { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
   {
@@ -17,10 +16,15 @@ const ITEMS = [
   { href: "/login", label: "Account", icon: User, match: (p: string) => p.startsWith("/login") },
 ];
 
+
+
 export const BottomNav = () => {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydration();
   const totalItems = useCartStore((state) => state.getTotalItems());
+
+
+
 
   useEffect(() => setMounted(true), []);
 
@@ -35,9 +39,8 @@ export const BottomNav = () => {
           <Link
             key={label}
             href={href}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
-              active ? "text-[#285943]" : "text-stone-500"
-            }`}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${active ? "text-[#285943]" : "text-stone-500"
+              }`}
           >
             <Icon size={19} aria-hidden="true" />
             {label}

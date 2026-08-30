@@ -1,26 +1,36 @@
-"use client";
+"use client"
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { memo } from "react";
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
+import { useHydration } from "@/store/useHydration";
 
-export const ProductCard = ({ product }: { product: Product }) => {
+/**
+ * ProductCard is rendered N times per catalog page (a grid of 20-40+ items
+ * is typical). Two changes here matter at that scale:
+ *
+ * 1. `useHydration()` replaces the local mounted/useEffect pair. With the
+ *    old pattern, a 40-item grid produced 40 independent post-mount
+ *    re-renders; now hydration flips once, from one shared subscription.
+ *
+ * 2. `React.memo` below stops a card from re-rendering when a SIBLING card
+ *    toggles its own wishlist/cart state or when the parent grid re-renders
+ *    for an unrelated reason (e.g. a filter changing). Because `product` is
+ *    the only prop and it's stable per item, memo is a cheap, safe win here.
+ */
+const ProductCardImpl = ({ product }: { product: Product }) => {
   const addItem = useCartStore((state) => state.addItem);
   const toggleWishlist = useWishlistStore((state) => state.toggleItem);
   const wishlisted = useWishlistStore((state) =>
     state.items.some((item) => item.id === product.id)
   );
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydration();
   const rating = product.Rating ?? 4.5;
   const outOfStock = (product.Stock ?? 0) <= 0;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <article className="group min-w-0 rounded-xl border border-stone-200 bg-white p-3 transition hover:shadow-md">
@@ -106,3 +116,6 @@ export const ProductCard = ({ product }: { product: Product }) => {
     </article>
   );
 };
+
+
+export const ProductCard = memo(ProductCardImpl);

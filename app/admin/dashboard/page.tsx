@@ -1,4 +1,6 @@
+
 import Link from "next/link";
+
 import {
   ArrowUpRight,
   ClipboardList,
@@ -15,12 +17,11 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 export const dynamic = "force-dynamic";
 
 /**
- * This is intentionally a small read model rather than the complete Order
- * domain object.
+ * Small dashboard read model.
  *
- * The dashboard doesn't need customer addresses, phone numbers, items, etc.
- * Sending those columns would increase DB work, serialization cost and RSC
- * payload size without providing any UX value.
+ * We intentionally fetch only the data required by the dashboard.
+ * This avoids loading unnecessary order/customer fields into the
+ * server component and keeps the RSC payload small.
  */
 type DashboardData = {
   total_sales: number;
@@ -58,10 +59,10 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 /**
- * Keep formatting server-side.
+ * Format currency on the server.
  *
- * This page is a Server Component, so there is no reason to ship formatting
- * logic to the browser for values that are already known at render time.
+ * This page is a Server Component, so formatting values here prevents
+ * unnecessary client-side JavaScript.
  */
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -71,6 +72,9 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+/**
+ * Format order dates on the server.
+ */
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -83,18 +87,10 @@ export default async function AdminOverviewPage() {
   const supabase = await supabaseServer();
 
   /**
-   * Single round trip for the complete dashboard projection.
+   * One database round-trip for the complete dashboard projection.
    *
-   * We deliberately do NOT do:
-   *
-   *   - SELECT * FROM orders
-   *   - reduce() in JavaScript
-   *   - filter() in JavaScript
-   *   - slice() for chart data
-   *
-   * Those operations scale with the number of orders loaded into the
-   * application server. Aggregation belongs in PostgreSQL, where indexes and
-   * the query planner can do the work much closer to the data.
+   * Aggregation stays in PostgreSQL instead of loading all orders
+   * into the application server and processing them in JavaScript.
    */
   const { data, error } = await supabase.rpc("get_admin_dashboard");
 
@@ -102,9 +98,8 @@ export default async function AdminOverviewPage() {
     console.error("ADMIN DASHBOARD ERROR:", error);
 
     /**
-     * Throwing here allows Next.js error boundaries to handle the failure.
-     * Returning fake numbers would be materially worse for an admin system:
-     * stale/incorrect financial data is more dangerous than an explicit error.
+     * Do not render fake financial/order data.
+     * Let the Next.js error boundary handle the failure.
      */
     throw new Error("Unable to load dashboard data.");
   }
@@ -114,17 +109,15 @@ export default async function AdminOverviewPage() {
   return (
     <div className="space-y-8 pb-10">
       <AdminPageHeader
-        title="Store overview"
+        title="HERE'S WHAT'S HAPPENING WITH YOUR STORE TODAY"
         description="Monitor revenue, orders, and the work that needs attention."
         userEmail={user?.email}
       />
 
-      {/* ---------------------------------------------------------------
-          KPI layer
-          ---------------------------------------------------------------
-          These are deliberately stateless. No client component, no effect,
-          no subscription and no separate request per metric.
-      ---------------------------------------------------------------- */}
+      {/* ------------------------------------------------------------------ */}
+      {/* KPI cards                                                          */}
+      {/* ------------------------------------------------------------------ */}
+
       <section
         aria-label="Store metrics"
         className="grid gap-4 md:grid-cols-3"
@@ -155,27 +148,28 @@ export default async function AdminOverviewPage() {
         />
       </section>
 
-      {/* ---------------------------------------------------------------
-          Main analytics area
-          ---------------------------------------------------------------
-          The chart and recent-orders panel are independent UI concerns.
-          Keeping them separate makes each easier to evolve without turning
-          the dashboard into one large component tree.
-      ---------------------------------------------------------------- */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Analytics + recent orders                                          */}
+      {/* ------------------------------------------------------------------ */}
+
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,.8fr)]">
         <SalesChart data={dashboard.sales_performance} />
 
         <RecentOrders orders={dashboard.recent_orders} />
       </section>
 
+      {/* ------------------------------------------------------------------ */}
+      {/* Quick actions                                                       */}
+      {/* ------------------------------------------------------------------ */}
+
       <QuickActions />
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Presentational components                                                   */
-/* -------------------------------------------------------------------------- */
+/* ==========================================================================
+   Metric Card
+   ========================================================================== */
 
 function MetricCard({
   label,
@@ -192,35 +186,41 @@ function MetricCard({
   tone: "green" | "blue" | "amber";
   emphasis?: boolean;
 }) {
-  const tones = {
-    green: "bg-emerald-50 text-emerald-700",
-    blue: "bg-blue-50 text-blue-700",
-    amber: "bg-amber-50 text-amber-700",
-  };
+  let toneClass = "bg-stone-50 text-stone-700";
+
+  if (tone === "green") {
+    toneClass = "bg-emerald-50 text-emerald-700";
+  }
+
+  if (tone === "blue") {
+    toneClass = "bg-blue-50 text-blue-700";
+  }
+
+  if (tone === "amber") {
+    toneClass = "bg-amber-50 text-amber-700";
+  }
+
+  const detailClass = emphasis
+    ? "mt-1 text-xs font-semibold text-amber-700"
+    : "mt-1 text-xs text-stone-500";
 
   return (
     <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)] transition-shadow duration-200 hover:shadow-[0_12px_36px_rgb(28_29_26/0.07)]">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-stone-500">{label}</p>
+          <p className="text-sm font-medium text-stone-500">
+            {label}
+          </p>
 
           <p className="mt-2 truncate text-[2rem] font-semibold tracking-[-.045em] text-stone-950">
             {value}
           </p>
 
-          <p
-            className={`mt-1 text-xs ${
-              emphasis
-                ? "font-semibold text-amber-700"
-                : "text-stone-500"
-            }`}
-          >
-            {detail}
-          </p>
+          <p className={detailClass}>{detail}</p>
         </div>
 
         <div
-          className={`grid size-11 shrink-0 place-items-center rounded-xl ${tones[tone]}`}
+          className={`grid size-11 shrink-0 place-items-center rounded-xl ${toneClass}`}
           aria-hidden="true"
         >
           <Icon size={20} strokeWidth={2} />
@@ -230,6 +230,10 @@ function MetricCard({
   );
 }
 
+/* ==========================================================================
+   Recent Orders
+   ========================================================================== */
+
 function RecentOrders({
   orders,
 }: {
@@ -237,28 +241,20 @@ function RecentOrders({
 }) {
   return (
     <section className="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow">Activity</p>
+      {/* Header */}
+      <div>
+        <p className="eyebrow">Activity</p>
 
-          <h2 className="mt-1 text-lg font-semibold tracking-tight">
-            Recent orders
-          </h2>
+        <h2 className="mt-1 text-lg font-semibold tracking-tight">
+          Recent orders
+        </h2>
 
-          <p className="mt-1 text-sm text-stone-500">
-            Your latest customer activity.
-          </p>
-        </div>
-
-        <Link
-          href="/admin/dashboard/orders"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50"
-        >
-          View all
-          <ArrowUpRight size={14} aria-hidden="true" />
-        </Link>
+        <p className="mt-1 text-sm text-stone-500">
+          Your latest customer activity.
+        </p>
       </div>
 
+      {/* Orders list */}
       <div className="mt-5 divide-y divide-stone-100">
         {orders.length > 0 ? (
           orders.map((order) => (
@@ -266,6 +262,7 @@ function RecentOrders({
               key={order.id}
               className="flex items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
             >
+              {/* Order information */}
               <div className="flex min-w-0 items-center gap-3">
                 <div
                   className="grid size-9 shrink-0 place-items-center rounded-lg bg-stone-50 text-stone-500"
@@ -286,6 +283,7 @@ function RecentOrders({
                 </div>
               </div>
 
+              {/* Price + status */}
               <div className="shrink-0 text-right">
                 <p className="text-sm font-semibold text-stone-900">
                   {formatCurrency(Number(order.totalPrice) || 0)}
@@ -293,7 +291,7 @@ function RecentOrders({
 
                 <span
                   className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
-                    STATUS_STYLES[order.status] ??
+                    STATUS_STYLES[order.status] ||
                     "bg-stone-50 text-stone-600 ring-stone-200"
                   }`}
                 >
@@ -303,6 +301,7 @@ function RecentOrders({
             </article>
           ))
         ) : (
+          /* Empty state */
           <div className="py-10 text-center">
             <Package
               className="mx-auto text-stone-300"
@@ -320,9 +319,32 @@ function RecentOrders({
           </div>
         )}
       </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Primary navigation button                                          */}
+      {/* ------------------------------------------------------------------ */}
+
+      <div className="mt-6 border-t border-stone-100 pt-5">
+        <Link
+          href="/admin/dashboard/orders"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#285943] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#214a38] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#285943] focus-visible:ring-offset-2"
+        >
+          <span>View all orders</span>
+
+          <ArrowUpRight
+            size={16}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+        </Link>
+      </div>
     </section>
   );
 }
+
+/* ==========================================================================
+   Quick Actions
+   ========================================================================== */
 
 function QuickActions() {
   return (
@@ -336,7 +358,10 @@ function QuickActions() {
         </div>
 
         <div>
-          <h2 className="text-base font-semibold">Quick actions</h2>
+          <h2 className="text-base font-semibold">
+            Quick actions
+          </h2>
+
           <p className="text-xs text-stone-500">
             Jump directly into common store tasks.
           </p>
@@ -365,6 +390,10 @@ function QuickActions() {
     </section>
   );
 }
+
+/* ==========================================================================
+   Quick Action
+   ========================================================================== */
 
 function QuickAction({
   href,

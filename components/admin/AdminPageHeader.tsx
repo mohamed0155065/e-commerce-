@@ -1,22 +1,66 @@
+
+import type { ReactNode } from "react";
+
 export default function AdminPageHeader({
+  eyebrow = "WELCOME BACK",
   title,
   description,
-  userEmail,
+  rightSlot,
 }: {
+  eyebrow?: string;
   title: string;
   description: string;
-  userEmail?: string | null;
+
+  /**
+   * Optional page-specific action rendered on the right side of the header.
+   *
+   * Keeping this generic allows the header to be reused across
+   * different admin routes without coupling it to page-specific UI.
+   */
+  rightSlot?: ReactNode;
 }) {
   return (
     <header>
-      {/* Small section identifier from the original design */}
-      <p className="eyebrow">
-        Marketly administration
+      {/* ------------------------------------------------------------------ */}
+      {/* Eyebrow                                                             */}
+      {/* ------------------------------------------------------------------ */}
+
+      <p
+        className="
+          flex items-center gap-1.5
+          text-xs font-semibold
+          uppercase tracking-wide
+          text-primary
+        "
+      >
+        {eyebrow}
       </p>
 
-      <div className="mt-2 flex flex-col gap-4 border-b border-stone-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
+      {/* ------------------------------------------------------------------ */}
+      {/* Main header                                                         */}
+      {/* ------------------------------------------------------------------ */}
+
+      <div
+        className="
+          mt-2
+          flex flex-col gap-4
+          border-b border-stone-300
+          pb-7
+          sm:flex-row
+          sm:items-end
+          sm:justify-between
+        "
+      >
         <div>
-          <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.055em] text-stone-950">
+          <h1
+            className="
+              text-[32px]
+              font-semibold
+              leading-tight
+              tracking-[-0.055em]
+              text-stone-950
+            "
+          >
             {title}
           </h1>
 
@@ -25,12 +69,13 @@ export default function AdminPageHeader({
           </p>
         </div>
 
-        {userEmail && (
-          <p className="shrink-0 text-xs text-stone-500">
-            Signed in as {userEmail}
-          </p>
+        {rightSlot && (
+          <div className="shrink-0">
+            {rightSlot}
+          </div>
         )}
       </div>
     </header>
   );
 }
+

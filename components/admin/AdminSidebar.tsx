@@ -9,8 +9,9 @@ import {
   ClipboardList,
   Boxes,
   LogOut,
-  Menu,
   X,
+  ChevronLeft,
+  ShoppingBag,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
@@ -35,13 +36,20 @@ const NAV_ITEMS = [
 
 export default function AdminSidebar({
   userEmail,
+  collapsed,
+  onToggleCollapsed,
+  mobileOpen,
+  onCloseMobile,
 }: {
   userEmail?: string | null;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -73,11 +81,8 @@ export default function AdminSidebar({
     router.refresh();
   };
 
-  const navigation = (
-    <nav
-      className="space-y-1 px-3"
-      aria-label="Admin navigation"
-    >
+  const navigation = (showLabels: boolean) => (
+    <nav className="space-y-1 px-3" aria-label="Admin navigation">
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         /**
          * Exact matching is required for Overview.
@@ -94,62 +99,97 @@ export default function AdminSidebar({
           <Link
             key={href}
             href={href}
-            onClick={() => setMobileOpen(false)}
+            onClick={onCloseMobile}
             aria-current={isActive ? "page" : undefined}
+            title={showLabels ? undefined : label}
             className={[
-              "flex items-center gap-3 rounded-lg px-3 py-2.5",
+              "flex items-center gap-3 rounded-xl px-3 py-2.5",
               "text-sm font-medium",
               "transition-colors duration-150",
+              !showLabels && "justify-center",
               isActive
-                ? "bg-[#285943] text-white"
-                : "text-stone-700 hover:bg-stone-100 hover:text-stone-950",
-            ].join(" ")}
+                ? "bg-white/10 text-white"
+                : "text-emerald-100/70 hover:bg-white/5 hover:text-white",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
-            <Icon
-              size={18}
-              strokeWidth={1.8}
-              aria-hidden="true"
-            />
-
-            {label}
+            <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+            {showLabels && label}
           </Link>
         );
       })}
     </nav>
   );
 
-  return (
-    <>
-      {/* ------------------------------------------------------------------
-          Mobile header
+  const logoBlock = (showLabels: boolean) => (
+    <div
+      className={`flex items-center gap-3 px-4 pb-6 pt-7 ${
+        !showLabels ? "justify-center px-0" : ""
+      }`}
+    >
+      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[#14532d]">
+        <ShoppingBag size={18} strokeWidth={2} aria-hidden="true" />
+      </div>
 
-          The desktop sidebar is intentionally hidden on small screens.
-          Keeping the navigation out of the initial mobile layout avoids
-          wasting horizontal viewport space.
-      ------------------------------------------------------------------- */}
-      <div className="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-4 lg:hidden">
-        <div>
-          <p className="text-sm font-semibold tracking-tight">
+      {showLabels && (
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold tracking-tight text-white">
             Marketly Admin
           </p>
-
-          <p className="mt-0.5 text-xs text-stone-500">
+          <p className="truncate text-xs text-emerald-100/60">
             Store management
           </p>
         </div>
+      )}
+    </div>
+  );
 
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open admin navigation"
-          className="rounded-lg p-2 text-stone-700 hover:bg-stone-100"
+  const footer = (showLabels: boolean) => (
+    <div className="mt-auto border-t border-white/10 px-4 pb-5 pt-4">
+      <div className={`flex items-center gap-3 ${!showLabels ? "justify-center" : ""}`}>
+        <div
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-700 text-sm font-semibold text-white"
+          aria-hidden="true"
         >
-          <Menu size={20} />
-        </button>
+          {(userEmail?.[0] ?? "A").toUpperCase()}
+        </div>
+
+        {showLabels && (
+          <div className="min-w-0">
+            <p
+              className="truncate text-xs font-medium text-white"
+              title={userEmail ?? undefined}
+            >
+              {userEmail ?? "Admin"}
+            </p>
+            <p className="text-[11px] text-emerald-100/60">Store Owner</p>
+          </div>
+        )}
       </div>
 
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        title={showLabels ? undefined : "Log out"}
+        className={`mt-4 flex items-center gap-2 text-sm font-medium text-red-300 transition-colors hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+          !showLabels ? "justify-center" : ""
+        }`}
+      >
+        <LogOut size={16} aria-hidden="true" />
+        {showLabels && (isLoggingOut ? "Signing out…" : "Log out")}
+      </button>
+    </div>
+  );
+
+  return (
+    <>
       {/* ------------------------------------------------------------------
           Mobile drawer
+          The desktop sidebar is intentionally hidden on small screens; the
+          hamburger trigger now lives in AdminTopbar so it works on every
+          admin page, not just Overview.
       ------------------------------------------------------------------- */}
       {mobileOpen && (
         <div
@@ -162,38 +202,25 @@ export default function AdminSidebar({
             type="button"
             aria-label="Close navigation"
             className="absolute inset-0 bg-black/30"
-            onClick={() => setMobileOpen(false)}
+            onClick={onCloseMobile}
           />
 
-          <aside className="absolute inset-y-0 left-0 flex w-[280px] flex-col border-r border-stone-200 bg-white py-6 shadow-xl">
-            <div className="flex items-start justify-between px-4 pb-7">
-              <div>
-                <p className="text-base font-bold tracking-tight">
-                  Marketly Admin
-                </p>
-
-                <p className="mt-1 text-xs text-stone-500">
-                  Store management
-                </p>
-              </div>
+          <aside className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-gradient-to-b from-[#0d3d21#0d3d21] to-[#123a28] py-2 shadow-xl">
+            <div className="flex items-center justify-between">
+              {logoBlock(true)}
 
               <button
                 type="button"
-                onClick={() => setMobileOpen(false)}
+                onClick={onCloseMobile}
                 aria-label="Close navigation"
-                className="rounded-lg p-2 text-stone-600 hover:bg-stone-100"
+                className="mr-2 rounded-lg p-2 text-emerald-100/70 hover:bg-white/10 hover:text-white"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {navigation}
-
-            <SidebarFooter
-              userEmail={userEmail}
-              isLoggingOut={isLoggingOut}
-              onLogout={handleLogout}
-            />
+            {navigation(true)}
+            {footer(true)}
           </aside>
         </div>
       )}
@@ -201,65 +228,44 @@ export default function AdminSidebar({
       {/* ------------------------------------------------------------------
           Desktop sidebar
 
-          Width and visual hierarchy intentionally match the original UI:
-          white surface + subtle divider + green active navigation item.
+          Dark green surface + logo mark + collapsible width, matching the
+          reference design. Width transitions are CSS-only (no layout
+          thrashing from JS-driven resize) so collapsing feels instant.
       ------------------------------------------------------------------- */}
-      <aside className="sticky top-0 hidden h-screen w-[280px] shrink-0 flex-col border-r border-stone-200 bg-white lg:flex">
-        <div className="px-4 pb-6 pt-7">
-          <p className="text-base font-bold tracking-tight">
-            Marketly Admin
-          </p>
+      <aside
+        className={`sticky top-0 hidden h-screen shrink-0 flex-col bg-gradient-to-b from-[#0d3d21] to-[#123a28] transition-[width] duration-200 lg:flex ${
+          collapsed ? "w-[84px]" : "w-[280px]"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          {logoBlock(!collapsed)}
 
-          <p className="mt-1 text-xs text-stone-500">
-            Store management
-          </p>
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              aria-label="Collapse sidebar"
+              className="mr-3 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-emerald-100/80 hover:bg-white/20 hover:text-white"
+            >
+              <ChevronLeft size={15} />
+            </button>
+          )}
         </div>
 
-        {navigation}
+        {collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label="Expand sidebar"
+            className="mx-auto mb-4 grid size-7 place-items-center rounded-lg bg-white/10 text-emerald-100/80 hover:bg-white/20 hover:text-white"
+          >
+            <ChevronLeft size={15} className="rotate-180" />
+          </button>
+        )}
 
-        <SidebarFooter
-          userEmail={userEmail}
-          isLoggingOut={isLoggingOut}
-          onLogout={handleLogout}
-        />
+        {navigation(!collapsed)}
+        {footer(!collapsed)}
       </aside>
     </>
-  );
-}
-
-function SidebarFooter({
-  userEmail,
-  isLoggingOut,
-  onLogout,
-}: {
-  userEmail?: string | null;
-  isLoggingOut: boolean;
-  onLogout: () => void;
-}) {
-  return (
-    <div className="mt-auto border-t border-stone-200 px-4 pb-5 pt-5">
-      {userEmail && (
-        <p
-          className="truncate text-xs text-stone-500"
-          title={userEmail}
-        >
-          {userEmail}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={onLogout}
-        disabled={isLoggingOut}
-        className="mt-4 flex items-center gap-2 px-1 text-sm font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <LogOut
-          size={16}
-          aria-hidden="true"
-        />
-
-        {isLoggingOut ? "Signing out…" : "Log out"}
-      </button>
-    </div>
   );
 }

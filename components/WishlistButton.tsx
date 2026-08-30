@@ -1,22 +1,17 @@
-"use client";
 
-import { useEffect, useState } from "react";
+import { memo } from "react";
 import { Heart } from "lucide-react";
 import { Product } from "@/types";
 import { useWishlistStore } from "@/store/useWishlistStore";
+import { useHydration } from "@/store/useHydration";
 
-export const WishlistButton = ({ product }: { product: Product }) => {
+const WishlistButtonImpl = ({ product }: { product: Product }) => {
   const toggleWishlist = useWishlistStore((state) => state.toggleItem);
   const wishlisted = useWishlistStore((state) =>
     state.items.some((item) => item.id === product.id)
   );
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  return (
+  const mounted = useHydration();
+ return (
     <button
       type="button"
       onClick={() => toggleWishlist(product)}
@@ -36,3 +31,5 @@ export const WishlistButton = ({ product }: { product: Product }) => {
     </button>
   );
 };
+
+export const WishlistButton = memo(WishlistButtonImpl);

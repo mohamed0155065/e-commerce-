@@ -10,6 +10,19 @@ interface CartState {
     items: CartItem[];
     addItem: (product: Product) => void;
     removeItem: (id: string) => void;
+    /**
+     * Removes every unit of a single line item in one state update.
+     *
+     * Before this action existed, "remove this line entirely" was done in
+     * CartDrawer with `for (let i = 0; i < item.quantity; i++) removeItem(id)`.
+     * That is O(quantity) calls to `set()` for something that only ever needs
+     * O(1): it re-derives the same "items minus this id" array repeatedly
+     * instead of doing it once. React 18 batches the resulting re-renders
+     * inside one event handler, so it "worked", but it is still needless
+     * array churn and needless work for the persist middleware, which
+     * serializes to localStorage on every `set()` call.
+     */
+    removeAllOfItem: (id: string) => void;
     clearCart: () => void;
     getTotalItems: () => number;
     getTotalPrice: () => number;
@@ -56,6 +69,10 @@ export const useCartStore = create<CartState>()(
                         items: currentItems.filter(item => item.id !== id),
                     });
                 }
+            },
+
+            removeAllOfItem: (id: string) => {
+                set({ items: get().items.filter(item => item.id !== id) });
             },
 
             clearCart: () => set({ items: [] }),
