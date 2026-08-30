@@ -1,24 +1,73 @@
+// app/admin/dashboard/page.tsx
+/**
+ * app/admin/dashboard/page.tsx  ->  route: /admin/dashboard  (Overview tab)
+ * ---------------------------------------------------------------------------
+ * Server Component. Fetches only what the overview needs: KPI numbers
+ * (total sales, orders received, awaiting action) and the last 6 orders for
+ * the sales chart — it no longer also loads/renders the full orders table or
+ * the product catalog, those now live at their own routes:
+ *   /admin/dashboard/orders    -> app/admin/dashboard/orders/page.tsx
+ *   /admin/dashboard/products  -> app/admin/dashboard/products/page.tsx
+ *
+ * Wrapped by app/admin/dashboard/layout.tsx, which handles the auth guard
+ * and renders the sidebar — this file only owns the Overview content.
+ * ---------------------------------------------------------------------------
+ */
 import { supabaseServer } from "@/lib/supabaseServer";
-import { redirect } from "next/navigation";
-import AddProductForm from "@/components/admin/AddProductForm";
 import SalesChart from "./Chart";
-import AdminProductsList from "@/components/admin/AdminProductsList";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
+
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
+export default async function AdminOverviewPage() {
   const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // load orders and products for dashboard
-  const { data: orders } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
-  const { data: products } = await supabase.from('product').select('id, created_at, Name, Price, Description, Image, Category, Stock, Status').order('created_at', { ascending: false });
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("id, full_name, totalPrice, status, created_at")
+    .order("created_at", { ascending: false });
 
   const totalRevenue = orders?.reduce((sum, order) => sum + (order.totalPrice || 0), 0) || 0;
   const totalOrders = orders?.length || 0;
-  const chartData = orders?.slice(0, 6).reverse().map((order) => ({ name: order.full_name?.split(" ")[0] || "Customer", amount: order.totalPrice })) || [];
+  const pendingOrders = orders?.filter((o) => o.status === "pending").length || 0;
+  const chartData =
+    orders
+      ?.slice(0, 6)
+      .reverse()
+      .map((order) => ({
+        name: order.full_name?.split(" ")[0] || "Customer",
+        amount: order.totalPrice,
+      })) || [];
 
-  return <div className="min-h-screen bg-[#f7f7f4] py-10"><div className="page-shell max-w-6xl"><p className="eyebrow">Marketly administration</p><div className="mt-2 flex flex-wrap items-end justify-between gap-4 border-b border-stone-300 pb-7"><div><h1 className="text-3xl font-semibold tracking-[-.055em]">Store overview</h1><p className="mt-2 text-sm text-stone-600">A concise view of current store activity.</p></div><p className="text-xs text-stone-500">Signed in as {user.email}</p></div><div className="mt-8 grid gap-px border border-stone-200 bg-stone-200 sm:grid-cols-2"><section className="bg-white p-6"><p className="eyebrow">Total sales</p><p className="mt-3 text-3xl font-semibold tracking-[-.05em]">${totalRevenue.toLocaleString()}</p></section><section className="bg-white p-6"><p className="eyebrow">Orders received</p><p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{totalOrders}</p></section></div><div className="mt-10">{chartData.length > 0 && <SalesChart data={chartData}/>}</div><div className="mt-10 border-t border-stone-300 pt-10"><AddProductForm /></div>
-  <div className="mt-10"><AdminProductsList initialProducts={products ?? []} /></div>
-  </div></div>;
+  return (
+    <>
+      <AdminPageHeader
+        title="Store overview"
+        description="A concise view of current store activity."
+        userEmail={user?.email}
+      />
+
+      <div className="mt-8 grid gap-px border border-stone-200 bg-stone-200 sm:grid-cols-3">
+        <div className="bg-white p-6">
+          <p className="eyebrow">Total sales</p>
+          <p className="mt-3 text-3xl font-semibold tracking-[-.05em]">
+            ${totalRevenue.toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white p-6">
+          <p className="eyebrow">Orders received</p>
+          <p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{totalOrders}</p>
+        </div>
+        <div className="bg-white p-6">
+          <p className="eyebrow">Awaiting action</p>
+          <p className="mt-3 text-3xl font-semibold tracking-[-.05em]">{pendingOrders}</p>
+        </div>
+      </div>
+
+      <div className="mt-10">{chartData.length > 0 && <SalesChart data={chartData} />}</div>
+    </>
+  );
 }

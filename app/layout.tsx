@@ -1,5 +1,17 @@
-import { Suspense } from "react";
-import { Navbar } from "@/components/Navbar";
+// app/layout.tsx
+/**
+ * app/layout.tsx
+ * ---------------------------------------------------------------------------
+ * Root layout — shared by *every* route, storefront and admin alike.
+ * Deliberately minimal: only truly global concerns live here (the <html>
+ * shell, global CSS, page metadata, and Providers/Toaster). The storefront's
+ * top nav has been moved out to app/(shop)/layout.tsx and the admin sidebar
+ * lives in app/admin/dashboard/layout.tsx, so neither nav leaks into the
+ * other section — previously the shop Navbar (Cart/Wishlist/Sign out) was
+ * rendered here and showed up on /admin/dashboard too, which is what this
+ * split fixes.
+ * ---------------------------------------------------------------------------
+ */
 import Providers from "@/components/Providers";
 import "./globals.css";
 
@@ -16,17 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <Suspense
-            fallback={
-              <div className="h-16 border-b border-stone-200 bg-white" />
-            }
-          >
-            <Navbar />
-          </Suspense>
-
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

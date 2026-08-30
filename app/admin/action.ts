@@ -1,14 +1,68 @@
 "use server";
 
+/**
+ * app/admin/action.ts
+ * ---------------------------------------------------------------------------
+ * Server Actions used exclusively by the admin dashboard (app/admin/dashboard).
+ * Every function here runs on the server, re-checks authentication (and, for
+ * order mutations, the caller's admin role) before touching the database, and
+ * calls revalidatePath so the dashboard's server-rendered data stays fresh
+ * after a mutation without a full page reload.
+ *
+ * Role in the system flow:
+ *   UI (client components in components/admin/*) --> calls these actions -->
+ *   Supabase (via supabaseServer, cookie-authenticated + RLS-protected) -->
+ *   revalidatePath refreshes the relevant app/admin/dashboard/** route's
+ *   server data (products -> /admin/dashboard/products, order status ->
+ *   /admin/dashboard/orders and /admin/dashboard).
+ * ---------------------------------------------------------------------------
+ */
+
 import { supabaseServer } from "@/lib/supabaseServer";
 import { revalidatePath } from "next/cache";
 import { productSchema } from "@/validators/productSchema";
+import type { OrderStatus, Order } from "@/types";
 
 type ActionState = {
     success: boolean;
     message: string;
     product?: any;
 };
+
+// Keep this list in lockstep with the `orders_status_check` CHECK constraint
+// added in supabase_migrations.sql — it's the single source of truth for
+// which status transitions the UI/server will accept.
+const ORDER_STATUSES: OrderStatus[] = [
+    "pending",
+    "processing",
+    "shipped",
+    "delivered",
+    "cancelled",
+];
+
+/**
+ * assertAdmin — defense-in-depth role check for order mutations.
+ * Middleware already blocks non-admins from reaching /admin/*, and RLS blocks
+ * non-admins at the database layer, but re-verifying here means this action
+ * stays safe even if it's ever called from a context middleware doesn't cover
+ * (e.g. directly invoked, or the matcher config changes later).
+ */
+async function assertAdmin(supabase: Awaited<ReturnType<typeof supabaseServer>>) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Authentication required");
+
+    const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+    if (error || profile?.role !== "admin") {
+        throw new Error("Admin privileges required");
+    }
+
+    return user;
+}
 
 /**
  * Clean and sanitize a file name to remove special characters
@@ -104,7 +158,7 @@ export async function addProductAction(prevState: ActionState | null, formData: 
 
         // Revalidate homepage and admin dashboard
         revalidatePath("/");
-        revalidatePath("/admin/dashboard");
+        revalidatePath("/admin/dashboard/products");
 
         return { success: true, message: "Product published successfully!" };
 
@@ -213,7 +267,7 @@ export async function updateProductAction(prevState: ActionState | null, formDat
 
         // Revalidate homepage and admin dashboard
         revalidatePath("/");
-        revalidatePath("/admin/dashboard");
+        revalidatePath("/admin/dashboard/products");
 
         return {
             success: true,
@@ -303,7 +357,7 @@ export async function deleteProductAction(
         }
 
         revalidatePath("/");
-        revalidatePath("/admin/dashboard");
+        revalidatePath("/admin/dashboard/products");
 
         return {
             success: true,
@@ -318,6 +372,72 @@ export async function deleteProductAction(
                 error instanceof Error
                     ? error.message
                     : "Failed to delete product",
+        };
+    }
+}
+
+/**
+ * updateOrderStatusAction — moves an order to a new lifecycle status.
+ * Called by components/admin/AdminOrdersList.tsx when the admin picks a new
+ * value from the per-row status <select>. The client applies the change
+ * optimistically and rolls back if this action reports failure.
+ *
+ * Flow: AdminOrdersList (optimistic UI) -> updateOrderStatusAction (this fn)
+ *   -> assertAdmin (role re-check) -> Supabase `orders` UPDATE (RLS-guarded)
+ *   -> revalidatePath("/admin/dashboard/orders" and "/admin/dashboard") so
+ *      both the orders table and the overview KPIs are fresh on next load
+ *   -> other admin tabs pick up the change live via the Realtime subscription
+ *      set up in AdminOrdersList (no revalidation needed there).
+ */
+export async function updateOrderStatusAction(payload: {
+    id: number;
+    status: OrderStatus;
+}): Promise<{ success: boolean; message: string; order?: Order }> {
+    try {
+        const supabase = await supabaseServer();
+
+        // 1. Re-verify the caller is an authenticated admin (see assertAdmin above)
+        await assertAdmin(supabase);
+
+        // 2. Validate the requested status against the known lifecycle values
+        //    instead of trusting the client blindly.
+        if (!ORDER_STATUSES.includes(payload.status)) {
+            throw new Error("Invalid order status");
+        }
+
+        if (!payload.id) throw new Error("Order ID is required");
+
+        // 3. Persist the change and return the updated row so the UI can sync
+        //    without re-fetching the whole order list.
+        const { data: updatedOrder, error } = await supabase
+            .from("orders")
+            .update({ status: payload.status })
+            .eq("id", payload.id)
+            .select("*")
+            .single();
+
+        if (error) throw new Error(`Database Error: ${error.message}`);
+
+        // 4. Refresh the server-rendered dashboard data for the next full load.
+        revalidatePath("/admin/dashboard/orders");
+        // The overview's "Orders received" / "Awaiting action" tiles are
+        // status-derived, so refresh that route too.
+        revalidatePath("/admin/dashboard");
+
+        return {
+            success: true,
+            message: "Order status updated",
+            order: updatedOrder as Order,
+        };
+    } catch (error) {
+        console.error("Update order status error:", error);
+
+        return {
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to update order status",
         };
     }
 }
