@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { Edit, Loader2, Trash2 } from "lucide-react";
 
 import { Product } from "@/types";
@@ -307,7 +308,7 @@ function ProductImage({
     <div
       className={`relative shrink-0 overflow-hidden border border-stone-100 bg-stone-50 ${dimensions}`}
     >
-      <img
+      <Image
         src={product.Image}
         alt={product.Name}
         loading="lazy"
@@ -378,9 +379,8 @@ function ProductActions({
 }) {
   return (
     <div
-      className={`flex items-center gap-2 ${
-        fullWidth ? "w-full" : ""
-      }`}
+      className={`flex items-center gap-2 ${fullWidth ? "w-full" : ""
+        }`}
     >
       <button
         type="button"
@@ -395,7 +395,7 @@ function ProductActions({
           "disabled:cursor-not-allowed disabled:opacity-50",
           fullWidth ? "flex-1" : "",
         ].join(" ")}
-        aria-label={`Edit ${onEdit ? "product" : ""}`}
+        aria-label="Edit product"
       >
         <Edit aria-hidden="true" size={14} />
         Edit
