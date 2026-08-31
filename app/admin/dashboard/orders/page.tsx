@@ -10,7 +10,7 @@
  * Wrapped by app/admin/dashboard/layout.tsx (auth guard + sidebar).
  * ---------------------------------------------------------------------------
  */
-import { supabaseServer, getSessionUser } from "@/lib/supabaseServer";
+import { supabaseServer } from "@/lib/supabaseServer";
 import AdminOrdersList from "@/components/admin/AdminOrdersList";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import type { Order } from "@/types";
@@ -24,9 +24,6 @@ export const dynamic = "force-dynamic";
 const INITIAL_ORDERS_LIMIT = 200;
 
 export default async function AdminOrdersPage() {
-  // getSessionUser() is request-cached (see lib/supabaseServer.ts) — reuses
-  // the layout's already-verified user instead of a second Auth round trip.
-  const user = await getSessionUser();
   const supabase = await supabaseServer();
 
   const { data: orders } = await supabase
@@ -40,7 +37,6 @@ export default async function AdminOrdersPage() {
       <AdminPageHeader
         title="Orders"
         description="Track incoming orders and update their fulfillment status."
-        userEmail={user?.email}
       />
 
       <div className="mt-8">

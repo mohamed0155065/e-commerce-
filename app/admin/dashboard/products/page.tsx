@@ -10,7 +10,7 @@
  * Wrapped by app/admin/dashboard/layout.tsx (auth guard + sidebar).
  * ---------------------------------------------------------------------------
  */
-import { supabaseServer, getSessionUser } from "@/lib/supabaseServer";
+import { supabaseServer } from "@/lib/supabaseServer";
 import AddProductForm from "@/components/admin/AddProductForm";
 import AdminProductsList from "@/components/admin/AdminProductsList";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -18,7 +18,6 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductsPage() {
-  const user = await getSessionUser();
   const supabase = await supabaseServer();
 
   const { data: products } = await supabase
@@ -31,7 +30,6 @@ export default async function AdminProductsPage() {
       <AdminPageHeader
         title="Products"
         description="Publish new products and manage the existing catalog."
-        userEmail={user?.email}
       />
 
       <div className="mt-8">

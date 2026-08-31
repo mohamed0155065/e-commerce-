@@ -1,8 +1,6 @@
-
 import type { ReactNode } from "react";
 
 type AdminPageHeaderProps = {
-  eyebrow?: string;
   title: string;
   description: string;
   rightSlot?: ReactNode;
@@ -11,113 +9,74 @@ type AdminPageHeaderProps = {
 /**
  * Shared admin page header.
  *
- * Responsibilities:
- * - Establish page hierarchy.
- * - Provide consistent spacing across admin routes.
- * - Render optional page-specific actions.
+ * Renders the page title, a short supporting description, and an
+ * optional page-specific action slot (e.g. a button in the top-right).
  *
- * Visual tokens come from globals.css / Tailwind theme.
- * The component intentionally contains no hard-coded brand colors.
+ * Used identically by Overview, Orders, and Products so the three admin
+ * routes share one visual rhythm — same title scale, same spacing above
+ * the content, same divider. Any future admin page should reuse this
+ * rather than hand-rolling its own header markup.
+ *
+ * Color tokens (stone-950 / stone-500 / stone-200) intentionally match
+ * the palette already used by MetricCard / RecentOrders so this doesn't
+ * look like it belongs to a different design system.
  */
 export default function AdminPageHeader({
-  eyebrow = "WELCOME BACK",
   title,
   description,
   rightSlot,
 }: AdminPageHeaderProps) {
   return (
-    <header className="w-full">
-      {/* ------------------------------------------------------------------
-          Eyebrow
-      ------------------------------------------------------------------ */}
+    <header
+      className="
+        flex
+        flex-col
+        gap-4
+        border-b
+        border-stone-200
+        pb-6
 
-      <p
-        className="
-          text-[11px]
-          font-bold
-          uppercase
-          tracking-[0.14em]
-          text-primary
-          sm:text-xs
-        "
-      >
-        {eyebrow}
-      </p>
+        sm:pb-7
 
-      {/* ------------------------------------------------------------------
-          Main header content
+        md:flex-row
+        md:items-end
+        md:justify-between
+      "
+    >
+      <div className="min-w-0">
+        <h1
+          className="
+            text-[26px]
+            font-semibold
+            leading-[1.15]
+            tracking-[-0.035em]
+            text-stone-950
 
-          Mobile:
-          - Stacked layout
-          - Full-width actions
+            sm:text-[30px]
+            md:text-[32px]
+          "
+        >
+          {title}
+        </h1>
 
-          Desktop:
-          - Content and actions sit beside each other
-      ------------------------------------------------------------------ */}
+        <p
+          className="
+            mt-2
+            max-w-2xl
+            text-[13px]
+            leading-5
+            text-stone-500
 
-      <div
-        className="
-          mt-2.5
-          flex
-          flex-col
-          gap-4
-          border-b
-          border-line
-          pb-6
-
-          sm:mt-3
-          sm:pb-7
-
-          md:flex-row
-          md:items-end
-          md:justify-between
-        "
-      >
-        <div className="min-w-0">
-          <h1
-            className="
-              text-[26px]
-              font-semibold
-              leading-[1.15]
-              tracking-[-0.035em]
-              text-foreground
-
-              sm:text-[30px]
-              md:text-[32px]
-            "
-          >
-            {title}
-          </h1>
-
-          <p
-            className="
-              mt-2
-              max-w-2xl
-              text-[13px]
-              leading-5
-              text-muted
-
-              sm:text-sm
-            "
-          >
-            {description}
-          </p>
-        </div>
-
-        {rightSlot ? (
-          <div
-            className="
-              w-full
-              shrink-0
-
-              md:w-auto
-            "
-          >
-            {rightSlot}
-          </div>
-        ) : null}
+            sm:text-sm
+          "
+        >
+          {description}
+        </p>
       </div>
+
+      {rightSlot ? (
+        <div className="w-full shrink-0 md:w-auto">{rightSlot}</div>
+      ) : null}
     </header>
   );
 }
-

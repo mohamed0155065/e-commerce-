@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState, useEffect, useRef } from "react";
+import type { ChangeEvent, ReactNode } from "react";
+
 import { addProductAction } from "@/app/admin/action";
 import {
     Upload,
@@ -9,91 +11,111 @@ import {
     CheckCircle2,
     ImageIcon,
 } from "lucide-react";
-import Image from "next/image";
+
+const INITIAL_STATE = { success: false, message: "" };
+
 /**
- * AddProductForm Component
- * - Provides a form to add a new product to the store
- * - Handles image preview, form submission, and feedback messages
- * - Integrates with server action `addProductAction`
+ * AddProductForm
+ *
+ * Publishes a new product via the `addProductAction` server action.
+ * Handles local image preview and resets the form (including the file
+ * input, which React can't control directly) after a successful submit.
+ *
+ * Sizing/color tokens intentionally mirror EditProductModal and the rest
+ * of the admin (stone/emerald palette, compact field density) rather than
+ * the oversized indigo-themed styling this form previously had — the two
+ * product forms should read as the same product, not two different apps.
  */
 export default function AddProductForm() {
-    const initialState = { success: false, message: "" };
-
     const [state, formAction, isPending] = useActionState(
         addProductAction,
-        initialState
+        INITIAL_STATE
     );
 
     const [preview, setPreview] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
 
+    // Revoke the blob URL on unmount so we don't leak memory.
     useEffect(() => {
         return () => {
             if (preview) URL.revokeObjectURL(preview);
         };
     }, [preview]);
 
+    // On a successful publish, clear the form — including the file input,
+    // which `formRef.current?.reset()` alone won't touch reliably enough
+    // to also drop our in-memory preview state.
     useEffect(() => {
-        if (state?.success) {
-            if (preview) {
-                URL.revokeObjectURL(preview);
-                setPreview(null);
-            }
-            formRef.current?.reset();
-            if (fileRef.current) fileRef.current.value = "";
+        if (!state?.success) return;
+
+        if (preview) {
+            URL.revokeObjectURL(preview);
+            setPreview(null);
         }
+
+        formRef.current?.reset();
+        if (fileRef.current) fileRef.current.value = "";
     }, [state?.success]);
 
-    return (
-        <div className="w-full max-w-4xl mx-auto bg-white p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-[2rem] border border-slate-200 shadow-sm">
+    const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) setPreview(URL.createObjectURL(file));
+    };
 
-            {/* Header */}
-            <div className="mb-8 sm:mb-10 space-y-2">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-                    Publish Product
+    return (
+        <div
+            className="
+                mx-auto w-full max-w-3xl
+                rounded-2xl border border-stone-200 bg-white
+                p-5 shadow-[0_8px_30px_rgb(28_29_26/0.04)]
+                sm:p-6
+            "
+        >
+            <div className="mb-6 space-y-1">
+                <h2 className="text-lg font-semibold tracking-tight text-stone-950 sm:text-xl">
+                    Publish product
                 </h2>
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="text-sm text-stone-500">
                     Add a new product to your store inventory.
                 </p>
             </div>
 
-            <form ref={formRef} action={formAction} className="space-y-8">
-
-                {/* Product Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Product Title
-                        </label>
+            <form ref={formRef} action={formAction} className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField label="Product title">
                         <input
                             name="name"
                             required
-                            className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                            disabled={isPending}
+                            autoComplete="off"
+                            className={inputClassName}
                         />
-                    </div>
+                    </FormField>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Price ($)
-                        </label>
+                    <FormField label="Price ($)">
                         <input
                             name="price"
                             required
                             type="number"
+                            min="0"
                             step="0.01"
-                            className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                            inputMode="decimal"
+                            disabled={isPending}
+                            className={inputClassName}
                         />
-                    </div>
+                    </FormField>
                 </div>
 
-                {/* Category / Stock / Status */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Category
-                        </label>
-                        <select name="category" required className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormField label="Category">
+                        <select
+                            name="category"
+                            required
+                            disabled={isPending}
+                            defaultValue="laptop"
+                            className={inputClassName}
+                        >
                             <option value="laptop">Laptop</option>
                             <option value="phones">Phones</option>
                             <option value="smart_watches">Smart Watches</option>
@@ -101,105 +123,158 @@ export default function AddProductForm() {
                             <option value="earbuds">Earbuds</option>
                             <option value="other">Other</option>
                         </select>
-                    </div>
+                    </FormField>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Stock quantity
-                        </label>
-                        <input name="stock" type="number" defaultValue={0} min={0} className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all" />
-                    </div>
+                    <FormField label="Stock quantity">
+                        <input
+                            name="stock"
+                            type="number"
+                            min={0}
+                            step={1}
+                            defaultValue={0}
+                            inputMode="numeric"
+                            disabled={isPending}
+                            className={inputClassName}
+                        />
+                    </FormField>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Status
-                        </label>
-                        <select name="status" className="w-full p-4 rounded-xl border text-taupe-950 border-slate-200 bg-white focus:ring-2 focus:ring-indigo-600 outline-none transition-all">
+                    <FormField label="Status">
+                        <select
+                            name="status"
+                            defaultValue="active"
+                            disabled={isPending}
+                            className={inputClassName}
+                        >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
-                    </div>
+                    </FormField>
                 </div>
 
-                {/* Description */}
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                        Description
-                    </label>
+                <FormField label="Description">
                     <textarea
                         name="description"
                         required
-                        className="w-full p-4 h-32 rounded-xl border text-taupe-950 border-slate-200 resize-none focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
+                        rows={4}
+                        disabled={isPending}
+                        className={`${inputClassName} min-h-28 resize-y`}
                     />
-                </div>
+                </FormField>
 
-                {/* Image Upload */}
-                <div className="space-y-3">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                        Product Image
-                    </label>
+                <div className="space-y-1.5">
+                    <label className={labelClassName}>Product image</label>
 
-                    <div className="relative group border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:border-indigo-600 transition-all cursor-pointer">
+                    <div
+                        className="
+                            relative flex min-h-40 flex-col items-center justify-center
+                            overflow-hidden rounded-xl border-2 border-dashed border-stone-300
+                            bg-stone-50/50 p-5 text-center transition-colors
+                            hover:border-emerald-600 hover:bg-emerald-50/30
+                        "
+                    >
                         <input
                             ref={fileRef}
                             name="image"
                             type="file"
                             required
-                            accept="image/*"
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) setPreview(URL.createObjectURL(file));
-                            }}
+                            accept="image/jpeg,image/png,image/webp"
+                            disabled={isPending}
+                            onChange={handleImageChange}
+                            className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
                         />
 
                         {preview ? (
-                            <img src={preview} alt="Preview" className="h-40 object-contain rounded-xl" />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={preview}
+                                alt="Selected product preview"
+                                className="max-h-40 max-w-full rounded-lg object-contain"
+                            />
                         ) : (
                             <>
-                                <ImageIcon className="w-10 h-10 text-slate-400 mb-3" />
-                                <p className="text-sm font-semibold text-slate-600">
+                                <ImageIcon
+                                    aria-hidden="true"
+                                    className="mb-2.5 h-8 w-8 text-stone-400"
+                                />
+                                <p className="text-sm font-medium text-stone-600">
                                     Click to upload product image
                                 </p>
-                                <span className="text-xs text-slate-400">
-                                    PNG, JPG, WEBP supported
+                                <span className="mt-0.5 text-xs text-stone-400">
+                                    JPG, PNG or WEBP
                                 </span>
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Feedback Message */}
                 {state?.message && (
                     <div
-                        className={`p-4 rounded-xl flex items-center gap-3 text-sm font-semibold ${state.success
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
+                        role={state.success ? "status" : "alert"}
+                        aria-live="polite"
+                        className={`flex items-center gap-2.5 rounded-lg p-3 text-sm font-medium ${state.success
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-red-50 text-red-700"
                             }`}
                     >
-                        {state.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                        {state.success ? (
+                            <CheckCircle2 size={17} className="shrink-0" aria-hidden="true" />
+                        ) : (
+                            <AlertCircle size={17} className="shrink-0" aria-hidden="true" />
+                        )}
                         {state.message}
                     </div>
                 )}
 
-                {/* Submit Button */}
                 <button
+                    type="submit"
                     disabled={isPending}
-                    className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold tracking-wide hover:bg-indigo-600 transition-all disabled:bg-slate-300 flex items-center justify-center gap-3"
+                    className="
+                        inline-flex w-full items-center justify-center gap-2
+                        rounded-lg bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white
+                        transition-colors hover:bg-emerald-700
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600
+                        disabled:cursor-not-allowed disabled:bg-stone-300
+                    "
                 >
                     {isPending ? (
                         <>
-                            <Loader2 className="animate-spin" size={18} />
+                            <Loader2 className="animate-spin" size={16} aria-hidden="true" />
                             Publishing...
                         </>
                     ) : (
                         <>
-                            <Upload size={18} />
-                            Publish Product
+                            <Upload size={16} aria-hidden="true" />
+                            Publish product
                         </>
                     )}
                 </button>
             </form>
+        </div>
+    );
+}
+
+/* ==========================================================================
+   Shared field styling — kept in sync with EditProductModal's tokens so the
+   "add" and "edit" product forms are visually indistinguishable apart from
+   their content.
+   ========================================================================== */
+
+const labelClassName =
+    "block text-[11px] font-bold uppercase tracking-wider text-stone-500";
+
+const inputClassName = `
+    w-full rounded-lg border border-stone-200 bg-white px-3.5 py-2.5
+    text-sm text-stone-950 outline-none transition-[border-color,box-shadow]
+    placeholder:text-stone-400
+    focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15
+    disabled:cursor-not-allowed disabled:bg-stone-50
+`;
+
+function FormField({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="space-y-1.5">
+            <label className={labelClassName}>{label}</label>
+            {children}
         </div>
     );
 }

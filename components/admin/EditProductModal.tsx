@@ -28,17 +28,29 @@ const ACCEPTED_IMAGE_TYPES = [
     "image/webp",
 ];
 
-const INITIAL_STATE = {
-    success: false,
-    message: "",
-};
-
 type EditProductModalProps = {
     product: Product;
     onClose: () => void;
     onSuccess: (updated: Product) => void;
 };
 
+const INITIAL_STATE = {
+    success: false,
+    message: "",
+};
+
+/**
+ * EditProductModal
+ *
+ * Client-side responsibilities are intentionally limited to:
+ * - Form interaction
+ * - Local image preview
+ * - UI state
+ * - Server Action submission
+ *
+ * Business validation and authorization MUST still happen
+ * inside updateProductAction on the server.
+ */
 export default function EditProductModal({
     product,
     onClose,
@@ -54,12 +66,11 @@ export default function EditProductModal({
 
     const fileRef = useRef<HTMLInputElement>(null);
 
-    /*
-     * Revoke the current object URL when the component unmounts
-     * or when a new preview URL replaces it.
+    /**
+     * Revoke the currently active object URL whenever it changes.
      *
-     * This prevents unnecessary blob URLs from staying alive
-     * in browser memory.
+     * This prevents blob URLs from accumulating in memory when
+     * the user selects multiple images before submitting.
      */
     useEffect(() => {
         return () => {
@@ -69,11 +80,11 @@ export default function EditProductModal({
         };
     }, [previewUrl]);
 
-    /*
-     * Close the modal after a successful server mutation.
+    /**
+     * Handle successful server mutation.
      *
-     * The small delay allows the success message to be visible
-     * instead of immediately removing the modal.
+     * Keep the small delay only to let the user visually register
+     * the success state before the modal disappears.
      */
     useEffect(() => {
         if (!state?.success || !state.product) {
@@ -85,16 +96,30 @@ export default function EditProductModal({
             onClose();
         }, 600);
 
-        return () => {
-            window.clearTimeout(timer);
-        };
+        return () => window.clearTimeout(timer);
     }, [state?.success, state?.product, onSuccess, onClose]);
 
-    /*
-     * Escape-to-close.
+    /**
+     * Lock background scrolling while the modal is open.
      *
-     * We intentionally don't close the modal while the form
-     * mutation is pending.
+     * This is especially important on mobile where a fixed modal
+     * can otherwise compete with the page underneath it.
+     */
+    useEffect(() => {
+        const originalOverflow = document.body.style.overflow;
+
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, []);
+
+    /**
+     * Allow keyboard users to close the modal with Escape.
+     *
+     * Do not close while a mutation is running because the user
+     * should not accidentally interrupt the submission flow.
      */
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -119,11 +144,9 @@ export default function EditProductModal({
             return;
         }
 
-        /*
-         * Client-side validation is for UX only.
-         *
-         * updateProductAction MUST validate the file again
-         * on the server before processing the upload.
+        /**
+         * Client validation improves UX.
+         * The server MUST validate the same constraints again.
          */
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
             setImageError(
@@ -145,11 +168,9 @@ export default function EditProductModal({
 
         setImageError(null);
 
-        /*
-         * Replace the previous blob URL.
-         *
-         * The previous URL is revoked immediately so selecting
-         * several images doesn't unnecessarily consume memory.
+        /**
+         * Revoke the previous blob URL before creating a new one.
+         * This avoids retaining unnecessary browser memory.
          */
         setPreviewUrl((previousUrl) => {
             if (previousUrl) {
@@ -174,7 +195,6 @@ export default function EditProductModal({
                 fixed inset-0 z-50
                 flex items-start justify-center
                 overflow-y-auto
-                overscroll-contain
                 bg-black/50
                 p-3
                 sm:items-center sm:p-4
@@ -184,28 +204,12 @@ export default function EditProductModal({
             aria-labelledby="edit-product-title"
             aria-describedby="edit-product-description"
         >
-            {/*
-             * Important:
-             * No body overflow locking here.
-             *
-             * The overlay itself owns the vertical scrolling,
-             * which keeps the modal usable on short screens
-             * and mobile devices.
-             */}
             <div
                 className="
-                    relative
-                    my-3
-                    w-full
-                    max-w-4xl
-                    shrink-0
-                    rounded-2xl
-                    border
-                    border-slate-200
-                    bg-white
-                    shadow-xl
-                    sm:my-6
-                    sm:rounded-[2rem]
+                    relative my-3 w-full max-w-4xl
+                    rounded-2xl border border-slate-200
+                    bg-white shadow-xl
+                    sm:my-6 sm:rounded-[2rem]
                     lg:my-8
                 "
             >
@@ -221,14 +225,9 @@ export default function EditProductModal({
                         aria-label="Close edit product modal"
                         title="Close"
                         className="
-                            absolute
-                            right-3
-                            top-3
-                            inline-flex
-                            min-h-10
-                            min-w-10
-                            items-center
-                            justify-center
+                            absolute right-3 top-3
+                            inline-flex min-h-10 min-w-10
+                            items-center justify-center
                             rounded-full
                             text-slate-500
                             transition-colors
@@ -239,8 +238,7 @@ export default function EditProductModal({
                             focus-visible:ring-indigo-600
                             disabled:cursor-not-allowed
                             disabled:opacity-50
-                            sm:right-5
-                            sm:top-5
+                            sm:right-5 sm:top-5
                         "
                     >
                         <X
@@ -249,19 +247,11 @@ export default function EditProductModal({
                         />
                     </button>
 
-                    <div
-                        className="
-                            space-y-1.5
-                            pr-12
-                            sm:space-y-2
-                        "
-                    >
+                    <div className="space-y-1.5 pr-12 sm:space-y-2">
                         <h2
                             id="edit-product-title"
                             className="
-                                text-xl
-                                font-bold
-                                tracking-tight
+                                text-xl font-bold tracking-tight
                                 text-slate-900
                                 sm:text-2xl
                                 md:text-3xl
@@ -274,10 +264,8 @@ export default function EditProductModal({
                             id="edit-product-description"
                             className="
                                 max-w-2xl
-                                text-xs
-                                font-medium
-                                leading-5
-                                text-slate-500
+                                text-xs font-medium
+                                leading-5 text-slate-500
                                 sm:text-sm
                             "
                         >
@@ -296,11 +284,9 @@ export default function EditProductModal({
                     action={formAction}
                     className="
                         space-y-6
-                        border-t
-                        border-slate-100
+                        border-t border-slate-100
                         p-5
-                        sm:space-y-7
-                        sm:p-7
+                        sm:space-y-7 sm:p-7
                         md:p-8
                         lg:p-10
                     "
@@ -311,25 +297,15 @@ export default function EditProductModal({
                         value={product.id}
                     />
 
-                    {/* =================================================
-                        Product title / price
-                    ================================================== */}
+                    {/* Product title / price */}
 
-                    <div
-                        className="
-                            grid
-                            grid-cols-1
-                            gap-5
-                            md:grid-cols-2
-                        "
-                    >
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                         <FormField label="Product Title">
                             <input
                                 name="name"
                                 required
                                 defaultValue={product.Name}
                                 autoComplete="off"
-                                disabled={isPending}
                                 className={inputClassName}
                             />
                         </FormField>
@@ -343,52 +319,36 @@ export default function EditProductModal({
                                 step="0.01"
                                 defaultValue={product.Price}
                                 inputMode="decimal"
-                                disabled={isPending}
                                 className={inputClassName}
                             />
                         </FormField>
                     </div>
 
-                    {/* =================================================
-                        Category / stock / status
-                    ================================================== */}
+                    {/* Category / stock / status */}
 
-                    <div
-                        className="
-                            grid
-                            grid-cols-1
-                            gap-5
-                            md:grid-cols-3
-                        "
-                    >
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                         <FormField label="Category">
                             <select
                                 name="category"
                                 required
                                 defaultValue={product.Category}
-                                disabled={isPending}
                                 className={inputClassName}
                             >
                                 <option value="laptop">
                                     Laptop
                                 </option>
-
                                 <option value="phones">
                                     Phones
                                 </option>
-
                                 <option value="smart_watches">
                                     Smart Watches
                                 </option>
-
                                 <option value="headphones">
                                     Headphones
                                 </option>
-
                                 <option value="earbuds">
                                     Earbuds
                                 </option>
-
                                 <option value="other">
                                     Other
                                 </option>
@@ -403,7 +363,6 @@ export default function EditProductModal({
                                 step={1}
                                 defaultValue={product.Stock}
                                 inputMode="numeric"
-                                disabled={isPending}
                                 className={inputClassName}
                             />
                         </FormField>
@@ -412,13 +371,11 @@ export default function EditProductModal({
                             <select
                                 name="status"
                                 defaultValue={product.Status}
-                                disabled={isPending}
                                 className={inputClassName}
                             >
                                 <option value="active">
                                     Active
                                 </option>
-
                                 <option value="inactive">
                                     Inactive
                                 </option>
@@ -426,9 +383,7 @@ export default function EditProductModal({
                         </FormField>
                     </div>
 
-                    {/* =================================================
-                        Description
-                    ================================================== */}
+                    {/* Description */}
 
                     <FormField label="Description">
                         <textarea
@@ -436,17 +391,12 @@ export default function EditProductModal({
                             required
                             defaultValue={product.Description}
                             rows={5}
-                            disabled={isPending}
-                            className={`
-                                ${inputClassName}
-                                min-h-32
-                                resize-y
-                            `}
+                            className={`${inputClassName} min-h-32 resize-y`}
                         />
                     </FormField>
 
                     {/* =================================================
-                        Product Image
+                        Image Upload
                     ================================================== */}
 
                     <div className="space-y-3">
@@ -458,30 +408,19 @@ export default function EditProductModal({
                                 Product Image
                             </label>
 
-                            <p
-                                className="
-                                    mt-1
-                                    text-xs
-                                    text-slate-400
-                                "
-                            >
-                                Leave empty to keep the current
-                                image. Maximum 5 MB.
+                            <p className="mt-1 text-xs text-slate-400">
+                                Leave empty to keep the current image.
+                                Maximum 5 MB.
                             </p>
                         </div>
 
                         <div
                             className="
-                                relative
-                                flex
-                                min-h-48
-                                flex-col
-                                items-center
-                                justify-center
+                                relative flex min-h-48
+                                flex-col items-center justify-center
                                 overflow-hidden
                                 rounded-2xl
-                                border-2
-                                border-dashed
+                                border-2 border-dashed
                                 border-slate-300
                                 bg-slate-50/50
                                 p-5
@@ -496,19 +435,13 @@ export default function EditProductModal({
                                 id="product-image"
                                 name="image"
                                 type="file"
-                                accept="
-                                    image/jpeg,
-                                    image/png,
-                                    image/webp
-                                "
+                                accept="image/jpeg,image/png,image/webp"
                                 disabled={isPending}
                                 onChange={handleImageChange}
                                 className="
-                                    absolute
-                                    inset-0
+                                    absolute inset-0
                                     z-10
-                                    h-full
-                                    w-full
+                                    h-full w-full
                                     cursor-pointer
                                     opacity-0
                                     disabled:cursor-not-allowed
@@ -545,29 +478,16 @@ export default function EditProductModal({
                                         aria-hidden="true"
                                         className="
                                             mb-3
-                                            h-9
-                                            w-9
+                                            h-9 w-9
                                             text-slate-400
                                         "
                                     />
 
-                                    <p
-                                        className="
-                                            text-sm
-                                            font-semibold
-                                            text-slate-600
-                                        "
-                                    >
+                                    <p className="text-sm font-semibold text-slate-600">
                                         Click to upload a new image
                                     </p>
 
-                                    <span
-                                        className="
-                                            mt-1
-                                            text-xs
-                                            text-slate-400
-                                        "
-                                    >
+                                    <span className="mt-1 text-xs text-slate-400">
                                         JPG, PNG or WEBP · Max 5 MB
                                     </span>
                                 </>
@@ -576,15 +496,12 @@ export default function EditProductModal({
 
                         {imageError && (
                             <p
-                                role="alert"
                                 className="
-                                    flex
-                                    items-center
-                                    gap-2
-                                    text-xs
-                                    font-medium
+                                    flex items-center gap-2
+                                    text-xs font-medium
                                     text-red-600
                                 "
+                                role="alert"
                             >
                                 <AlertCircle
                                     size={15}
@@ -596,26 +513,16 @@ export default function EditProductModal({
                         )}
                     </div>
 
-                    {/* =================================================
-                        Server Action feedback
-                    ================================================== */}
+                    {/* Server Action feedback */}
 
                     {state?.message && (
                         <div
-                            role={
-                                state.success
-                                    ? "status"
-                                    : "alert"
-                            }
+                            role={state.success ? "status" : "alert"}
                             aria-live="polite"
                             className={`
-                                flex
-                                items-start
-                                gap-3
-                                rounded-xl
-                                p-3.5
-                                text-sm
-                                font-semibold
+                                flex items-start gap-3
+                                rounded-xl p-3.5
+                                text-sm font-semibold
                                 sm:p-4
                                 ${
                                     state.success
@@ -638,9 +545,7 @@ export default function EditProductModal({
                                 />
                             )}
 
-                            <span>
-                                {state.message}
-                            </span>
+                            <span>{state.message}</span>
                         </div>
                     )}
 
@@ -650,14 +555,10 @@ export default function EditProductModal({
 
                     <div
                         className="
-                            flex
-                            flex-col-reverse
-                            gap-3
-                            border-t
-                            border-slate-100
+                            flex flex-col-reverse gap-3
+                            border-t border-slate-100
                             pt-5
-                            sm:flex-row
-                            sm:justify-end
+                            sm:flex-row sm:justify-end
                         "
                     >
                         <button
@@ -711,7 +612,7 @@ export default function EditProductModal({
 }
 
 /* ==========================================================================
-   Shared UI
+   Reusable local UI primitives
    ========================================================================== */
 
 const labelClassName = `
@@ -728,11 +629,9 @@ const inputClassName = `
     mt-1
     w-full
     rounded-xl
-    border
-    border-slate-200
+    border border-slate-200
     bg-white
-    px-3.5
-    py-3
+    px-3.5 py-3
     text-sm
     text-slate-950
     outline-none
@@ -743,8 +642,7 @@ const inputClassName = `
     focus:ring-indigo-500/20
     disabled:cursor-not-allowed
     disabled:bg-slate-50
-    sm:px-4
-    sm:py-3.5
+    sm:px-4 sm:py-3.5
 `;
 
 const secondaryButtonClassName = `
@@ -754,8 +652,7 @@ const secondaryButtonClassName = `
     items-center
     justify-center
     rounded-xl
-    border
-    border-slate-300
+    border border-slate-300
     bg-white
     px-5
     text-sm
