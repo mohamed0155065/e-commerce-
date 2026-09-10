@@ -36,7 +36,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "app/(shop)/wishlist"
-  ],
+, "featues/admin/services/adminService.ts"  ],
   "exclude": [
     "node_modules"
   ]

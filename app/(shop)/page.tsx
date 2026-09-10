@@ -1,6 +1,6 @@
-import { productService } from "@/services/productService";
-import { ProductCard } from "@/components/ProductCard";
-import { SearchBar } from "@/components/SearchBar";
+import { productService } from "@/featues/products/services/productService";
+import { ProductCard } from "@/featues/card/components/ProductCard";
+import { SearchBar } from "@/components/shared/ui/SearchBar";
 import {
   ArrowRight,
   Headphones,
@@ -17,7 +17,7 @@ import {
   BadgeCheck,
   Clock,
 } from "lucide-react";
-import type { Product } from "@/types";
+import type { Product } from "@/featues/products/types/products.types";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -136,11 +136,10 @@ export default async function HomePage({
                 key={c.slug}
                 href={`/?category=${c.slug}`}
                 aria-current={active ? "page" : undefined}
-                className={`flex w-20 shrink-0 snap-start flex-col items-center gap-2 rounded-xl border bg-white px-3 py-4 text-center transition hover:border-[#14532d] md:w-auto ${
-                  active
-                    ? "border-[#14532d] ring-1 ring-[#14532d]"
-                    : "border-stone-200"
-                }`}
+                className={`flex w-20 shrink-0 snap-start flex-col items-center gap-2 rounded-xl border bg-white px-3 py-4 text-center transition hover:border-[#14532d] md:w-auto ${active
+                  ? "border-[#14532d] ring-1 ring-[#14532d]"
+                  : "border-stone-200"
+                  }`}
               >
                 <span className="grid h-11 w-11 place-items-center rounded-full bg-[#e9f0ea] text-[#14532d]">
                   <Icon size={20} aria-hidden="true" />

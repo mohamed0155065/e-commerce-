@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 
 import { getSessionUser, supabaseServer } from "@/lib/supabaseServer";
-import SalesChart from "./Chart";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import SalesChart from "../../../featues/admin/components/dashboard/ui/Chart";
+import AdminPageHeader from "@/featues/admin/ui/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -313,11 +313,10 @@ function MetricCard({
                 "+0%" or "-100%" on day one. */}
             {growthText && (
               <span
-                className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                  isPositive
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-red-50 text-red-700"
-                }`}
+                className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isPositive
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-red-50 text-red-700"
+                  }`}
                 title={trendLabel}
               >
                 {isPositive ? (
@@ -402,10 +401,9 @@ function RecentOrders({
                 </p>
 
                 <span
-                  className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${
-                    STATUS_STYLES[order.status] ||
+                  className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ${STATUS_STYLES[order.status] ||
                     "bg-stone-50 text-stone-600 ring-stone-200"
-                  }`}
+                    }`}
                 >
                   {order.status}
                 </span>
@@ -585,9 +583,8 @@ function StatusBreakdown({
                 aria-label={`${status} orders`}
               >
                 <div
-                  className={`h-full rounded-full ${
-                    STATUS_DOT[status] || "bg-stone-400"
-                  }`}
+                  className={`h-full rounded-full ${STATUS_DOT[status] || "bg-stone-400"
+                    }`}
                   style={{ width: `${percent}%` }}
                 />
               </div>
@@ -645,11 +642,10 @@ function LowStockAlert({
               </p>
 
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${
-                  product.stock === 0
-                    ? "bg-red-50 text-red-700 ring-red-200"
-                    : "bg-amber-50 text-amber-700 ring-amber-200"
-                }`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${product.stock === 0
+                  ? "bg-red-50 text-red-700 ring-red-200"
+                  : "bg-amber-50 text-amber-700 ring-amber-200"
+                  }`}
               >
                 {product.stock === 0
                   ? "Out of stock"

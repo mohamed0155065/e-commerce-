@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, AlertCircle, LockKeyhole } from "lucide-react";
 import { checkoutSchema, type checkoutInput } from "@/validators/checkoutSchema";
-import { useCartStore } from "@/store/useCartStore";
+import { useCartStore } from "@/featues/cart/store/useCartStore";
 import { supabase } from "@/lib/supabase";
 
 export default function CheckoutPage() {

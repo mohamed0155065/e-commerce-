@@ -3,11 +3,11 @@ import Link from "next/link";
 import { ChevronRight, ShieldCheck, Truck, RotateCcw } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { productService } from "@/services/productService";
-import AddToCartButton from "@/components/AddToCartButton";
-import { WishlistButton } from "@/components/WishlistButton";
-import { RelatedProducts } from "@/components/RelatedProducts";
-import { Product } from "@/types";
+import { productService } from "@/featues/products/services/productService";
+import AddToCartButton from "@/featues/products/components/admin_access/AddToCartButton";
+import { WishlistButton } from "@/featues/wishlist/components/WishlistButton";
+import { RelatedProducts } from "@/featues/products/components/RelatedProducts";
+import { Product } from "@/featues/products/types/products.types";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +26,11 @@ export default async function ProductPage({
 
   const related: Product[] = product.Category
     ? (await productService.getAll())
-        .filter(
-          (item) =>
-            item.Category === product.Category && item.id !== product.id
-        )
-        .slice(0, 4)
+      .filter(
+        (item) =>
+          item.Category === product.Category && item.id !== product.id
+      )
+      .slice(0, 4)
     : [];
 
   const inStock = typeof product.Stock === "number" && product.Stock > 0;
@@ -107,9 +107,8 @@ export default async function ProductPage({
               )}
 
               <h1
-                className={`${
-                  product.Category ? "mt-1.5" : ""
-                } text-2xl font-bold leading-tight tracking-[-.02em] text-stone-950 sm:text-3xl lg:text-[34px]`}
+                className={`${product.Category ? "mt-1.5" : ""
+                  } text-2xl font-bold leading-tight tracking-[-.02em] text-stone-950 sm:text-3xl lg:text-[34px]`}
               >
                 {product.Name}
               </h1>
@@ -142,11 +141,10 @@ export default async function ProductPage({
 
               {stockKnown && (
                 <span
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                    inStock
-                      ? "bg-green-50 text-green-700"
-                      : "bg-red-50 text-red-600"
-                  }`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${inStock
+                    ? "bg-green-50 text-green-700"
+                    : "bg-red-50 text-red-600"
+                    }`}
                 >
                   {inStock ? `${product.Stock} in stock` : "Out of stock"}
                 </span>
@@ -175,9 +173,8 @@ export default async function ProductPage({
                 <div className="flex items-center justify-between gap-4 border-b border-stone-200 px-4 py-2.5 last:border-b-0">
                   <span className="text-sm text-stone-500">Availability</span>
                   <span
-                    className={`text-sm font-semibold ${
-                      inStock ? "text-green-700" : "text-red-600"
-                    }`}
+                    className={`text-sm font-semibold ${inStock ? "text-green-700" : "text-red-600"
+                      }`}
                   >
                     {inStock ? `${product.Stock} in stock` : "Out of stock"}
                   </span>

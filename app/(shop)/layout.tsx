@@ -15,7 +15,7 @@
  * ---------------------------------------------------------------------------
  */
 import { Suspense } from "react";
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "@/components/shared/ui/Navbar";
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (

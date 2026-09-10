@@ -47,7 +47,7 @@ export default function UserLogin() {
                 </form>
 
                 <p className="mt-5 text-center text-sm text-stone-500">
-                    Don't have an account? <Link href="/register" className="text-[#14532d] font-medium">Register</Link>
+                    Don&apos;t have an account? <Link href="/register" className="text-[#14532d] font-medium">Register</Link>
                 </p>
             </div>
         </main>
