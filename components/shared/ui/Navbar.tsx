@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Heart, ShoppingCart, Truck, User, LogOut } from "lucide-react";
+import { ChevronDown, Heart, LogOut, Package, ShoppingCart, Truck, User } from "lucide-react";
 import { useCartStore } from "@/featues/card/store/useCartStore";
 import { useWishlistStore } from "@/featues/wishlist/store/useWishlistStore";
 import { CartDrawer } from "@/featues/card/components/CartDrawer";
@@ -13,6 +13,8 @@ import { supabase } from "@/lib/supabase";
 export const Navbar = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const totalItems = useCartStore((state) => state.getTotalItems());
@@ -31,14 +33,37 @@ export const Navbar = () => {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Close the account dropdown on outside click / Escape.
+  useEffect(() => {
+    if (!isAccountOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setIsAccountOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsAccountOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isAccountOpen]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserEmail(null);
+    setIsAccountOpen(false);
     router.push("/");
     router.refresh();
   };
 
   const cartLabel = `Open cart with ${totalItems} items`;
+  const initial = userEmail ? userEmail.charAt(0).toUpperCase() : "";
 
   return (
     <header className="sticky top-0 z-50 bg-white">
@@ -104,15 +129,59 @@ export const Navbar = () => {
             </button>
 
             {mounted && userEmail ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950"
-                aria-label="Sign out"
-              >
-                <LogOut size={19} aria-hidden="true" />
-                <span className="hidden lg:inline">Sign out</span>
-              </button>
+              <div className="relative" ref={accountRef}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setIsAccountOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-100"
+                  aria-label="Account menu"
+                  aria-haspopup="menu"
+                  aria-expanded={isAccountOpen}
+                >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#14532d] text-xs font-semibold leading-none text-white">
+                    {initial}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`hidden transition-transform duration-200 lg:inline ${isAccountOpen ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isAccountOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+10px)] w-56 rounded-xl border border-stone-200 bg-white py-1.5 shadow-[0_12px_32px_rgb(28_29_26/0.12)] before:absolute before:-top-1.5 before:right-4 before:h-3 before:w-3 before:rotate-45 before:border-l before:border-t before:border-stone-200 before:bg-white"
+                  >
+
+
+                    <div className="border-t border-stone-100" />
+
+                    <Link
+                      href="/orders"
+                      role="menuitem"
+                      onClick={() => setIsAccountOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 transition-colors hover:bg-stone-50"
+                    >
+                      <Package size={16} className="text-stone-400" aria-hidden="true" />
+                      My Orders
+                    </Link>
+
+                    <div className="border-t border-stone-100" />
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <LogOut size={16} aria-hidden="true" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link
                 href="/login"

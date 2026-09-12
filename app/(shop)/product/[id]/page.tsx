@@ -4,7 +4,7 @@ import { ChevronRight, ShieldCheck, Truck, RotateCcw } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { productService } from "@/featues/products/services/productService";
-import AddToCartButton from "@/featues/products/components/admin_access/AddToCartButton";
+import AddToCartButton from "@/featues/products/components/AddToCartButton";
 import { WishlistButton } from "@/featues/wishlist/components/WishlistButton";
 import { RelatedProducts } from "@/featues/products/components/RelatedProducts";
 import { Product } from "@/featues/products/types/products.types";

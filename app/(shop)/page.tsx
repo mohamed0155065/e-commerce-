@@ -1,3 +1,4 @@
+
 import { productService } from "@/featues/products/services/productService";
 import { ProductCard } from "@/featues/card/components/ProductCard";
 import { SearchBar } from "@/components/shared/ui/SearchBar";
@@ -41,7 +42,9 @@ export default async function HomePage({
   searchParams: Promise<{ query?: string; category?: string }>;
 }) {
   const { query = "", category = "all" } = await searchParams;
+
   const hasSearch = Boolean(query.trim());
+
   let products: Product[] = [];
   let loadError = false;
 
@@ -61,6 +64,7 @@ export default async function HomePage({
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#14532d]/10 blur-2xl"
           aria-hidden="true"
         />
+
         <div
           className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-[#14532d]/5 blur-2xl"
           aria-hidden="true"
@@ -70,9 +74,11 @@ export default async function HomePage({
           <p className="eyebrow text-xs font-semibold uppercase tracking-[.14em] text-[#14532d]">
             Online store
           </p>
+
           <h1 className="mt-4 max-w-2xl text-4xl font-bold leading-[1.08] tracking-[-.03em] text-stone-950 sm:text-5xl lg:text-[64px]">
             Shop the latest <span className="text-[#14532d]">tech.</span>
           </h1>
+
           <p className="mt-5 max-w-lg text-base leading-7 text-stone-600 sm:text-lg">
             Find top laptops, phones, accessories and more. Compare, choose
             and add to cart with ease.
@@ -86,6 +92,7 @@ export default async function HomePage({
               Shop products
               <ArrowRight size={16} aria-hidden="true" />
             </a>
+
             <a
               href="#products"
               className="inline-flex items-center gap-2 rounded-md border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-900 transition hover:border-stone-500 hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14532d]"
@@ -100,19 +107,38 @@ export default async function HomePage({
 
           <dl className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#b9cbbb] pt-6 text-xs font-medium text-stone-700">
             <div className="flex items-center gap-1.5">
-              <ShieldCheck size={15} className="text-[#14532d]" aria-hidden="true" />
+              <ShieldCheck
+                size={15}
+                className="text-[#14532d]"
+                aria-hidden="true"
+              />
               Secure payments
             </div>
+
             <div className="flex items-center gap-1.5">
-              <RotateCcw size={15} className="text-[#14532d]" aria-hidden="true" />
+              <RotateCcw
+                size={15}
+                className="text-[#14532d]"
+                aria-hidden="true"
+              />
               7-day returns
             </div>
+
             <div className="flex items-center gap-1.5">
-              <BadgeCheck size={15} className="text-[#14532d]" aria-hidden="true" />
+              <BadgeCheck
+                size={15}
+                className="text-[#14532d]"
+                aria-hidden="true"
+              />
               Genuine products
             </div>
+
             <div className="flex items-center gap-1.5">
-              <Clock size={15} className="text-[#14532d]" aria-hidden="true" />
+              <Clock
+                size={15}
+                className="text-[#14532d]"
+                aria-hidden="true"
+              />
               24/7 support
             </div>
           </dl>
@@ -131,19 +157,23 @@ export default async function HomePage({
           {CATEGORIES.map((c) => {
             const Icon = c.icon;
             const active = category === c.slug;
+
             return (
               <Link
                 key={c.slug}
                 href={`/?category=${c.slug}`}
+                scroll={false}
                 aria-current={active ? "page" : undefined}
-                className={`flex w-20 shrink-0 snap-start flex-col items-center gap-2 rounded-xl border bg-white px-3 py-4 text-center transition hover:border-[#14532d] md:w-auto ${active
-                  ? "border-[#14532d] ring-1 ring-[#14532d]"
-                  : "border-stone-200"
-                  }`}
+                className={`flex w-20 shrink-0 snap-start flex-col items-center gap-2 rounded-xl border bg-white px-3 py-4 text-center transition hover:border-[#14532d] md:w-auto ${
+                  active
+                    ? "border-[#14532d] ring-1 ring-[#14532d]"
+                    : "border-stone-200"
+                }`}
               >
                 <span className="grid h-11 w-11 place-items-center rounded-full bg-[#e9f0ea] text-[#14532d]">
                   <Icon size={20} aria-hidden="true" />
                 </span>
+
                 <span className="text-xs font-medium text-stone-800">
                   {c.label}
                 </span>
@@ -159,6 +189,7 @@ export default async function HomePage({
           <h2 className="text-2xl font-bold tracking-[-.02em] text-stone-950">
             {hasSearch ? `Results for "${query}"` : "Best Sellers"}
           </h2>
+
           {!loadError && (
             <p className="text-sm text-stone-500">
               {products.length} {products.length === 1 ? "item" : "items"}
@@ -168,13 +199,20 @@ export default async function HomePage({
 
         {loadError ? (
           <div className="rounded-xl border border-stone-300 bg-white px-6 py-20 text-center">
-            <PackageSearch className="mx-auto text-stone-400" size={28} aria-hidden="true" />
+            <PackageSearch
+              className="mx-auto text-stone-400"
+              size={28}
+              aria-hidden="true"
+            />
+
             <h3 className="mt-4 text-lg font-semibold text-stone-900">
               Unable to load products
             </h3>
+
             <p className="mt-2 text-sm text-stone-500">
               Please check your connection and try again.
             </p>
+
             <Link
               href="/"
               className="mt-5 inline-block text-sm font-semibold text-[#14532d] hover:underline"
@@ -190,12 +228,18 @@ export default async function HomePage({
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-stone-300 bg-white px-6 py-20 text-center">
-            <PackageSearch className="mx-auto text-stone-400" size={28} aria-hidden="true" />
+            <PackageSearch
+              className="mx-auto text-stone-400"
+              size={28}
+              aria-hidden="true"
+            />
+
             <h3 className="mt-4 text-lg font-semibold text-stone-900">
               {hasSearch
                 ? "No products matched your search"
                 : "No products available"}
             </h3>
+
             <p className="mt-2 text-sm text-stone-500">
               {hasSearch
                 ? "Try another search term, or clear your search to browse everything."

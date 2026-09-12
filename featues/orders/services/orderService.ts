@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { supabase } from "@/lib/supabase";
 
 import type { order, order_status } from "../types/orders.types";
@@ -92,4 +94,40 @@ export const updateOrderStatus = async (
     }
 
     return data;
+};
+
+/**
+ * Fetches every order placed by a specific user (their personal order
+ * history), most recent first.
+ *
+ * Responsibility:
+ * - Perform the database query only.
+ *
+ * The `client` is injected rather than imported directly so this can be
+ * called either with the request-scoped `supabaseServer()` client (Server
+ * Component page render) or with the browser `supabase` client.
+ *
+ * Row Level Security ("orders_select_own" policy) is the real security
+ * boundary — it ensures a signed-in user can only ever be returned rows
+ * where `user_id = auth.uid()`, no matter what id is passed in.
+ *
+ * @param client - A Supabase client bound to the current user's session.
+ * @param userId - The id of the user whose orders to fetch.
+ * @returns The user's orders, newest first.
+ */
+export const getOrdersByUser = async (
+    client: SupabaseClient,
+    userId: string
+): Promise<order[]> => {
+    const { data, error } = await client
+        .from("orders")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        throw new Error(`Unable to fetch orders: ${error.message}`);
+    }
+
+    return (data ?? []) as order[];
 };

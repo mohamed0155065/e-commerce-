@@ -76,6 +76,7 @@ export async function middleware(request: NextRequest) {
     const isUserLoginPage = path === '/login'
     const isRegisterPage = path === '/register'
     const isCheckoutPage = path === '/checkout'
+    const isOrdersPage = path === '/orders'
 
     // 1) admin area =user+role=admin
     if (isAdminArea) {
@@ -94,6 +95,11 @@ export async function middleware(request: NextRequest) {
         url.searchParams.set('redirect', '/checkout')
         return NextResponse.redirect(url)
     }
+    if (isOrdersPage && !user) {
+        const url = new URL('/login', request.url)
+        url.searchParams.set('redirect', '/orders')
+        return NextResponse.redirect(url)
+    }
 
     // 3) أدمن مسجل دخول وحاول يفتح login/register بتاعت اليوزر أو admin/login تاني
     if (user && role === 'admin' && (isAdminLoginPage || isUserLoginPage || isRegisterPage)) {
@@ -109,5 +115,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/admin/:path*', '/login', '/register', '/checkout'],
+
+
+    matcher: ['/admin/:path*', '/login', '/register', '/checkout', '/orders'],
+
 }
