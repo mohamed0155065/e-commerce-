@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, ShoppingBag, User } from "lucide-react";
 
-import { useCartStore } from "@/featues/cart/store/useCartStore";
+import { useCartStore } from "@/featues/card/store/useCartStore";
 import { useHydration } from "@/store/useHydration";
 
 const ITEMS = [

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getSessionUser } from "@/lib/supabaseServer";
-import AdminShell from "@/featues/admin/AdminShell";
+import AdminShell from "@/featues/admin/ui/AdminShell";
 
 /**
  * SERVER COMPONENT
