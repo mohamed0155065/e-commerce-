@@ -17,12 +17,27 @@ import type { order, order_status } from "../types/orders.types";
  * - FormData handling.
  * - UI-related logic.
  *
+ * Client usage rule:
+ * - `createOrder` intentionally uses the shared browser `supabase` client
+ *   because it's called from a public-facing checkout flow covered by the
+ *   "anon can insert" RLS policies — no user session is expected or
+ *   required there.
+ * - `updateOrderStatus` and `getOrdersByUser`, on the other hand, operate
+ *   under RLS policies that check `auth.uid()` (admin-only update,
+ *   user-scoped select). Those MUST receive their Supabase client as a
+ *   parameter from the caller (a Server Action using `supabaseServer()`),
+ *   rather than importing the browser client directly. Importing the
+ *   browser client for these would silently run the request with no
+ *   session attached, causing RLS to match zero rows instead of failing
+ *   loudly — this previously surfaced as a confusing "Cannot coerce the
+ *   result to a single JSON object" error on status updates.
+ *
  * Flow:
  * Server Action
  *     ↓
  * Authorization / validation
  *     ↓
- * Order Service
+ * Order Service (uses the client passed in by the caller)
  *     ↓
  * Supabase
  */
@@ -36,6 +51,10 @@ import type { order, order_status } from "../types/orders.types";
  *   representation expects JSON data.
  * - Ensure totalPrice is stored as a number.
  * - Insert the order into Supabase.
+ *
+ * Uses the shared browser client on purpose: this is called from the
+ * public checkout flow, covered by the "anon can insert" RLS policy, and
+ * does not require (or expect) a signed-in session.
  *
  * @param orderData - Validated order data.
  * @returns The newly created order record.
@@ -74,15 +93,25 @@ export const createOrder = async (orderData: order) => {
  * outside this service because this service should not decide
  * whether the current user is allowed to perform the operation.
  *
+ * The `client` is injected rather than imported directly because this
+ * mutation is gated by an admin-only RLS policy that checks
+ * `auth.uid()`. The caller (a Server Action) must create the client via
+ * `supabaseServer()` so the admin's session cookies are attached to the
+ * request — using the plain browser client here would run the UPDATE
+ * with no identity, and RLS would match zero rows instead of raising a
+ * clear permission error.
+ *
+ * @param client - A session-bound Supabase client (e.g. from `supabaseServer()`).
  * @param id - The order ID.
  * @param status - The new order status.
  * @returns The updated order record.
  */
 export const updateOrderStatus = async (
+    client: SupabaseClient,
     id: number,
     status: order_status
 ) => {
-    const { data, error } = await supabase
+    const { data, error } = await client
         .from("orders")
         .update({ status })
         .eq("id", id)

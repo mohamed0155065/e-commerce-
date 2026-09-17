@@ -118,7 +118,6 @@ export default function AdminOrdersList({
           setOrders((current) =>
             current.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
           );
-
           // Skip the toast for updates this tab itself just triggered.
           if (recentLocalUpdates.current.has(updated.id)) {
             recentLocalUpdates.current.delete(updated.id);
@@ -142,8 +141,13 @@ export default function AdminOrdersList({
    * `orders`), so passing it down doesn't force every OrderRow to re-render
    * when unrelated rows change.
    */
-  const handleStatusChange = useCallback(async (id: number, nextStatus:  order_status) => {
-    let previousStatus:  order_status| undefined;
+
+  useEffect(() => {
+    // @ts-expect-error debug only
+    window.supabase = supabase;
+  }, []);
+  const handleStatusChange = useCallback(async (id: number, nextStatus: order_status) => {
+    let previousStatus: order_status | undefined;
 
     setOrders((current) =>
       current.map((o) => {
@@ -301,7 +305,7 @@ const OrderRow = React.memo(function OrderRow({
                 aria-label={`Change status for order ${order.id}`}
                 value={order.status}
                 disabled={isUpdating}
-                onChange={(e) => onStatusChange(order.id, e.target.value as  order_status)}
+                onChange={(e) => onStatusChange(order.id, e.target.value as order_status)}
                 className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs disabled:opacity-50"
               >
                 {STATUS_OPTIONS.map((status) => (
@@ -352,7 +356,7 @@ const OrderCard = React.memo(function OrderCard({
   isExpanded: boolean;
   isUpdating: boolean;
   onToggleExpanded: (id: number) => void;
-  onStatusChange: (id: number, status:  order_status) => void;
+  onStatusChange: (id: number, status: order_status) => void;
 }) {
   const items = useMemo(() => parseOrderItems(order.items), [order.items]);
 
@@ -394,7 +398,7 @@ const OrderCard = React.memo(function OrderCard({
               aria-label={`Change status for order ${order.id}`}
               value={order.status}
               disabled={isUpdating}
-              onChange={(e) => onStatusChange(order.id, e.target.value as  order_status)}
+              onChange={(e) => onStatusChange(order.id, e.target.value as order_status)}
               className="min-h-8 rounded-md border border-stone-200 bg-white px-2 py-1 text-xs disabled:opacity-50"
             >
               {STATUS_OPTIONS.map((status) => (

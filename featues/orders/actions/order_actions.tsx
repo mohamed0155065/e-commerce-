@@ -29,15 +29,26 @@ import type { order_status } from "../types/orders.types";
  *    ↓
  * updateOrderStatusAction
  *    ↓
- * Authentication
+ * supabaseServer() — one client, created once, carries the admin's session
  *    ↓
- * Authorization
+ * assertAdmin(client) — verifies role, does not create its own client
  *    ↓
  * Input validation
  *    ↓
- * orderService.updateOrderStatus()
+ * orderService.updateOrderStatus(client, ...) — same session-bound client
  *    ↓
  * Supabase
+ *
+ * IMPORTANT: every Supabase call in this flow must use the SAME
+ * session-bound client (`supabaseServer()`), created once per action
+ * invocation. Using a different client (e.g. the browser client from
+ * "@/lib/supabase") for the actual mutation after authorizing with a
+ * session-bound client causes the request to hit Supabase with no
+ * identity attached — RLS policies that check `auth.uid()` will then
+ * silently match zero rows instead of throwing a clear permission error.
+ * That mismatch was the root cause of a prior "Cannot coerce the result
+ * to a single JSON object" bug: the UPDATE ran anonymously, affected 0
+ * rows, and the trailing `.select().single()` had nothing to return.
  */
 
 /**
@@ -56,15 +67,19 @@ const ORDER_STATUSES: order_status[] = [
     "cancelled",
 ];
 
+type ServerSupabaseClient = Awaited<ReturnType<typeof supabaseServer>>;
+
 /**
  * Verifies that the current request belongs to an admin user.
  *
  * This check happens on the server because client-side
  * role checks are only UI controls and cannot provide security.
+ *
+ * Takes the already-created session-bound client rather than creating
+ * its own, so authorization and the subsequent mutation always share
+ * the same identity/session.
  */
-async function assertAdmin() {
-    const supabase = await supabaseServer();
-
+async function assertAdmin(supabase: ServerSupabaseClient) {
     const {
         data: { user },
     } = await supabase.auth.getUser();
@@ -88,10 +103,11 @@ async function assertAdmin() {
  * Updates the status of an order.
  *
  * Responsibilities:
- * - Verify admin authentication.
+ * - Create a single session-bound Supabase client for this invocation.
+ * - Verify admin authentication using that client.
  * - Validate the order ID.
  * - Validate the requested status.
- * - Delegate the database mutation to orderService.
+ * - Delegate the database mutation to orderService, using the SAME client.
  * - Revalidate affected admin pages.
  */
 export async function updateOrderStatusAction(payload: {
@@ -100,9 +116,16 @@ export async function updateOrderStatusAction(payload: {
 }) {
     try {
         /**
+         * Create the client once. Every downstream call (authorization
+         * check + the actual mutation) reuses this exact instance so the
+         * admin's session is consistently attached to every request.
+         */
+        const supabase = await supabaseServer();
+
+        /**
          * Authorization must happen before the database mutation.
          */
-        await assertAdmin();
+        await assertAdmin(supabase);
 
         if (!payload.id) {
             throw new Error("Order ID is required");
@@ -113,10 +136,12 @@ export async function updateOrderStatusAction(payload: {
         }
 
         /**
-         * The service is responsible for the actual
-         * Supabase update.
+         * The service is responsible for the actual order update.
+         * Keep the action focused on authorization and validation,
+         * and delegate the mutation to the existing service signature.
          */
         const updatedOrder = await updateOrderStatus(
+            supabase,
             payload.id,
             payload.status
         );

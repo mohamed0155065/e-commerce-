@@ -189,12 +189,6 @@ export default async function HomePage({
           <h2 className="text-2xl font-bold tracking-[-.02em] text-stone-950">
             {hasSearch ? `Results for "${query}"` : "Best Sellers"}
           </h2>
-
-          {!loadError && (
-            <p className="text-sm text-stone-500">
-              {products.length} {products.length === 1 ? "item" : "items"}
-            </p>
-          )}
         </div>
 
         {loadError ? (

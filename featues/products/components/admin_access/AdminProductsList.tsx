@@ -304,6 +304,9 @@ function ProductImage({
       ? "h-20 w-20 rounded-lg"
       : "h-14 w-20 rounded-md";
 
+  const imageWidth = size === "mobile" ? 80 : 80;
+  const imageHeight = size === "mobile" ? 80 : 56;
+
   return (
     <div
       className={`relative shrink-0 overflow-hidden border border-stone-100 bg-stone-50 ${dimensions}`}
@@ -311,6 +314,8 @@ function ProductImage({
       <Image
         src={product.Image}
         alt={product.Name}
+        width={imageWidth}
+        height={imageHeight}
         loading="lazy"
         decoding="async"
         className="h-full w-full object-contain"
