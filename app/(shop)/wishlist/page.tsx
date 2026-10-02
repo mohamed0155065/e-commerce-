@@ -4,9 +4,12 @@ import Link from "next/link";
 import { Heart, ArrowLeft } from "lucide-react";
 import { useWishlistStore } from "@/featues/wishlist/store/useWishlistStore";
 import { ProductCard } from "@/featues/card/components/ProductCard";
+import { useHydration } from "@/store/useHydration";
 
 export default function WishlistPage() {
   const items = useWishlistStore((state) => state.items);
+  const hydrated = useHydration();
+  const visibleItems = hydrated ? items : [];
 
   return (
     <div className="page-shell pb-20 pt-10">
@@ -16,11 +19,11 @@ export default function WishlistPage() {
           Your Wishlist
         </h1>
         <p className="mt-2 text-sm text-stone-500">
-          {items.length} {items.length === 1 ? "item" : "items"} saved
+          {visibleItems.length} {visibleItems.length === 1 ? "item" : "items"} saved
         </p>
       </div>
 
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <div className="border border-dashed border-stone-300 bg-white px-6 py-20 text-center">
           <Heart className="mx-auto text-stone-400" size={28} />
           <h3 className="mt-4 text-lg font-semibold">
@@ -39,7 +42,7 @@ export default function WishlistPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 xl:grid-cols-5">
-          {items.map((product) => (
+          {visibleItems.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

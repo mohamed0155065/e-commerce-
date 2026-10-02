@@ -9,6 +9,7 @@ import { useWishlistStore } from "@/featues/wishlist/store/useWishlistStore";
 import { CartDrawer } from "@/featues/card/components/CartDrawer";
 import { SearchBar } from "./SearchBar";
 import { supabase } from "@/lib/supabase";
+import { useHydratedValue, useHydration } from "@/store/useHydration";
 
 export const Navbar = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -19,7 +20,9 @@ export const Navbar = () => {
 
   const totalItems = useCartStore((state) => state.getTotalItems());
   const totalWishlisted = useWishlistStore((state) => state.items.length);
-  const mounted = true;
+  const mounted = useHydration();
+  const safeTotalItems = useHydratedValue(totalItems, 0);
+  const safeTotalWishlisted = useHydratedValue(totalWishlisted, 0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -62,7 +65,7 @@ export const Navbar = () => {
     router.refresh();
   };
 
-  const cartLabel = `Open cart with ${totalItems} items`;
+  const cartLabel = mounted ? `Open cart with ${safeTotalItems} items` : "Open cart";
   const initial = userEmail ? userEmail.charAt(0).toUpperCase() : "";
 
   return (
@@ -94,15 +97,15 @@ export const Navbar = () => {
               className="relative hidden items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950 sm:flex"
               aria-label={
                 mounted
-                  ? `Open wishlist with ${totalWishlisted} items`
+                  ? `Open wishlist with ${safeTotalWishlisted} items`
                   : "Open wishlist"
               }
             >
               <span className="relative">
                 <Heart size={19} aria-hidden="true" />
-                {mounted && totalWishlisted > 0 && (
+                {mounted && safeTotalWishlisted > 0 && (
                   <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[#14532d] px-1 text-[10px] font-semibold text-white">
-                    {totalWishlisted}
+                    {safeTotalWishlisted}
                   </span>
                 )}
               </span>
@@ -119,9 +122,9 @@ export const Navbar = () => {
             >
               <span className="relative">
                 <ShoppingCart size={19} aria-hidden="true" />
-                {mounted && totalItems > 0 && (
+                {mounted && safeTotalItems > 0 && (
                   <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[#14532d] px-1 text-[10px] font-semibold text-white">
-                    {totalItems}
+                    {safeTotalItems}
                   </span>
                 )}
               </span>

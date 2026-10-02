@@ -84,7 +84,8 @@ export const useCartStore = create<CartState>()(
                 get().items.reduce((acc, item) => acc + (item.Price * item.quantity), 0),
         }),
         {
-            name: 'shopping-cart'
+            name: 'shopping-cart',
+            skipHydration: true,
         }
     )
 );

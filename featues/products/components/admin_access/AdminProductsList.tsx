@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { Edit, Loader2, Trash2 } from "lucide-react";
+import { Edit, Loader2, Trash2, X } from "lucide-react";
 
 import { Product } from "../../types/products.types";
 import { deleteProductAction } from "../../actions/product_actions";
@@ -18,14 +18,37 @@ export default function AdminProductsList({
 }: AdminProductsListProps) {
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const pendingDeleteProduct =
+    pendingDeleteId === null
+      ? null
+      : products.find((product) => product.id === pendingDeleteId) ?? null;
+
+  useEffect(() => {
+    if (!alertMessage) return;
+
+    const timer = window.setTimeout(() => {
+      setAlertMessage(null);
+    }, 3200);
+
+    return () => window.clearTimeout(timer);
+  }, [alertMessage]);
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product? This action cannot be undone."
-    );
+    setPendingDeleteId(id);
+  };
 
-    if (!confirmed) return;
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
 
     try {
       setDeletingId(id);
@@ -33,19 +56,28 @@ export default function AdminProductsList({
       const result = await deleteProductAction({ id });
 
       if (!result.success) {
-        window.alert(result.message || "Failed to delete product");
+        setAlertMessage({
+          type: "error",
+          text: result.message || "Failed to delete product.",
+        });
         return;
       }
 
-      // Update only the affected collection instead of refetching
-      // the entire product list after a successful mutation.
       setProducts((currentProducts) =>
         currentProducts.filter((product) => product.id !== id)
       );
+
+      setAlertMessage({
+        type: "success",
+        text: "Product deleted successfully.",
+      });
     } catch (error) {
       console.error("Delete product error:", error);
 
-      window.alert("Failed to delete product. Please try again.");
+      setAlertMessage({
+        type: "error",
+        text: "Failed to delete product. Please try again.",
+      });
     } finally {
       setDeletingId(null);
     }
@@ -150,6 +182,89 @@ export default function AdminProductsList({
             </table>
           </div>
         </>
+      )}
+
+      {pendingDeleteProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl shadow-stone-900/20">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Confirm action
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold text-red-700">
+                  Delete product
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPendingDeleteId(null)}
+                className="rounded-full p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+                aria-label="Close confirmation dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="mt-4 text-sm leading-6 text-stone-600">
+              Are you sure you want to delete <span className="font-semibold text-stone-900">{pendingDeleteProduct.Name}</span>?
+              This action cannot be undone.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDeleteId(null)}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deletingId === pendingDeleteId}
+                className="rounded-full bg-red-700 e-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-blue-400"
+              >
+                {deletingId === pendingDeleteId ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {alertMessage && (
+        <div className="fixed right-4 top-4 z-[60] w-full max-w-sm rounded-xl border border-stone-200 bg-white p-4 shadow-xl shadow-stone-900/10">
+          <div className="flex items-start gap-3">
+            <div
+              className={[
+                "mt-0.5 h-2.5 w-2.5 rounded-full",
+                alertMessage.type === "success"
+                  ? "bg-emerald-500"
+                  : "bg-red-500",
+              ].join(" ")}
+            />
+
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-stone-900">
+                {alertMessage.type === "success" ? "Success" : "Error"}
+              </p>
+              <p className="mt-1 text-sm text-stone-600">
+                {alertMessage.text}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAlertMessage(null)}
+              className="rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+              aria-label="Dismiss alert"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Modal is mounted only when actually needed. */}

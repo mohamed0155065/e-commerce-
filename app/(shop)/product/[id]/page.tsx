@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronRight, ShieldCheck, Truck, RotateCcw } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { productService } from "@/featues/products/services/productService";
+import { productService } from "@/featues/products/types/services/productService";
 import AddToCartButton from "@/featues/products/components/AddToCartButton";
 import { WishlistButton } from "@/featues/wishlist/components/WishlistButton";
 import { RelatedProducts } from "@/featues/products/components/RelatedProducts";

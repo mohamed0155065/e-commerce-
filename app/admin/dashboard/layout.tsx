@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSessionUser } from "@/lib/supabaseServer";
+import { getSessionUser, supabaseServer } from "@/lib/supabaseServer";
 import AdminShell from "@/featues/admin/ui/AdminShell";
 
 /**
@@ -41,6 +41,18 @@ export default async function AdminDashboardLayout({
    */
   if (!user) {
     redirect("/admin/login");
+  }
+
+  const supabase = await supabaseServer();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  const role = (user.app_metadata as { role?: string } | null)?.role ?? profile?.role;
+
+  if (role !== "admin") {
+    redirect("/");
   }
 
   return <AdminShell userEmail={user.email}>{children}</AdminShell>;

@@ -26,7 +26,7 @@ export default function AdminLogin() {
         setErrorMessage(null);
         setLoading(true);
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
@@ -37,20 +37,8 @@ export default function AdminLogin() {
             return;
         }
 
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", data.user.id)
-            .single();
-
-        if (profile?.role !== "admin") {
-            await supabase.auth.signOut();
-            setErrorMessage("This account is not authorized to access the admin panel.");
-            setLoading(false);
-            return;
-        }
-
         router.push("/admin/dashboard");
+        router.refresh();
     };
 
     return (

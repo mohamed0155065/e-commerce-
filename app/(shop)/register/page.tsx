@@ -1,17 +1,28 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 export default function Register() {
+    return (
+        <Suspense fallback={<main className="h-screen bg-stone-50" />}>
+            <RegisterForm />
+        </Suspense>
+    );
+}
+
+function RegisterForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [oauthError, setOauthError] = useState("");
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,6 +70,23 @@ export default function Register() {
                         {loading ? <Loader2 className="animate-spin" size={18} /> : "Create account"}
                     </button>
                 </form>
+
+                <div className="my-5 flex items-center gap-3 text-xs text-stone-400">
+                    <span className="h-px flex-1 bg-stone-200" />
+                    <span>OR</span>
+                    <span className="h-px flex-1 bg-stone-200" />
+                </div>
+
+                <GoogleSignInButton
+                    onError={setOauthError}
+                    label="Sign up with Google"
+                    errorReturnTo="/register"
+                />
+                {(oauthError || searchParams.has("error")) && (
+                    <p role="alert" className="mt-3 text-sm text-red-600">
+                        {oauthError || "Google sign-up failed. Please try again."}
+                    </p>
+                )}
 
                 <p className="mt-5 text-center text-sm text-stone-500">
                     Already have an account? <Link href="/login" className="text-[#14532d] font-medium">Sign in</Link>

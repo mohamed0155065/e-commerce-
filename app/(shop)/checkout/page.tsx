@@ -9,14 +9,17 @@ import { ArrowLeft, AlertCircle, LockKeyhole } from "lucide-react";
 import { checkoutSchema, type checkoutInput } from "@/validators/checkoutSchema";
 import { useCartStore } from "@/featues/card/store/useCartStore";
 import { supabase } from "@/lib/supabase";
+import { useHydration } from "@/store/useHydration";
 
 export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const { items, getTotalPrice, clearCart } = useCartStore();
+  const hydrated = useHydration();
   const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm<checkoutInput>({ resolver: zodResolver(checkoutSchema) });
-  const total = getTotalPrice();
+  const total = hydrated ? getTotalPrice() : 0;
+  const visibleItems = hydrated ? items : [];
 
   const onSubmit = async (formData: checkoutInput) => {
     setIsSubmitting(true);
@@ -54,7 +57,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!items.length) return (
+  if (!hydrated || !visibleItems.length) return (
     <div className="page-shell grid min-h-[calc(100vh-4rem)] place-items-center text-center">
       <div>
         <h1 className="text-3xl font-semibold tracking-[-.05em]">Your cart is empty</h1>
@@ -91,7 +94,7 @@ export default function CheckoutPage() {
         <aside className="h-fit border border-stone-200 bg-white p-5 lg:sticky lg:top-20">
           <h2 className="font-semibold">Order summary</h2>
           <ul className="mt-5 divide-y divide-stone-100">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <li key={item.id} className="flex gap-3 py-4 first:pt-0">
                 <div className="relative h-14 w-14 shrink-0 bg-[#f2f3ef]"><Image src={item.Image} fill sizes="56px" alt="" className="object-contain p-1" /></div>
                 <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.Name}</p><p className="mt-1 text-xs text-stone-500">Qty {item.quantity}</p></div>

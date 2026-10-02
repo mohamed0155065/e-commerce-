@@ -265,8 +265,8 @@ export default function EditProductModal({
                 flex items-start justify-center
                 overflow-y-auto
                 bg-black/50
-                p-3
-                sm:items-center sm:p-4
+                p-2
+                sm:items-center sm:p-3
             "
             role="dialog"
             aria-modal="true"
@@ -275,18 +275,18 @@ export default function EditProductModal({
         >
             <div
                 className="
-                    relative my-3 w-full max-w-4xl
+                    relative my-2 w-[95vw] max-w-3xl
                     rounded-2xl border border-slate-200
                     bg-white shadow-xl
-                    sm:my-6 sm:rounded-4xl
-                    lg:my-8
+                    sm:my-4 sm:rounded-3xl
+                    lg:my-6
                 "
             >
                 {/* =====================================================
                     Header
                 ====================================================== */}
 
-                <div className="p-5 sm:p-7 md:p-8 lg:p-10">
+                <div className="p-4 sm:p-5 md:p-6 lg:p-7">
                     <button
                         type="button"
                         onClick={handleClose}
@@ -352,12 +352,12 @@ export default function EditProductModal({
                 <form
                     action={formAction}
                     className="
-                        space-y-6
-                        border-t border-slate-100
-                        p-5
-                        sm:space-y-7 sm:p-7
-                        md:p-8
-                        lg:p-10
+                        max-h-[76vh] space-y-5
+                        overflow-y-auto border-t border-slate-100
+                        p-4
+                        sm:space-y-6 sm:p-5
+                        md:p-6
+                        lg:p-7
                     "
                 >
                     <input
@@ -491,18 +491,13 @@ export default function EditProductModal({
 
                         <div
                             className="
-                                relative flex min-h-48
-                                flex-col items-center justify-center
-                                overflow-hidden
-                                rounded-2xl
-                                border-2 border-dashed
-                                border-slate-300
-                                bg-slate-50/50
-                                p-5
-                                text-center
+                                relative mx-auto flex min-h-[220px] w-full
+                                max-w-[440px] flex-col items-center justify-center
+                                overflow-hidden rounded-2xl
+                                border-2 border-dashed border-slate-300
+                                bg-slate-50/50 p-5 text-center
                                 transition-colors
-                                hover:border-indigo-500
-                                hover:bg-indigo-50/20
+                                hover:border-indigo-500 hover:bg-indigo-50/20
                             "
                         >
                             <input
@@ -527,6 +522,8 @@ export default function EditProductModal({
                                 <Image
                                     src={previewUrl}
                                     alt="New product preview"
+                                    width={800}
+                                    height={600}
                                     className="
                                         max-h-48
                                         max-w-full
@@ -540,6 +537,8 @@ export default function EditProductModal({
                                     alt={`${product.Name} current image`}
                                     loading="lazy"
                                     decoding="async"
+                                    width={800}
+                                    height={600}
                                     className="
                                         max-h-48
                                         max-w-full
@@ -603,10 +602,9 @@ export default function EditProductModal({
                                 rounded-xl p-3.5
                                 text-sm font-semibold
                                 sm:p-4
-                                ${
-                                    state.success
-                                        ? "bg-emerald-50 text-emerald-700"
-                                        : "bg-red-50 text-red-700"
+                                ${state.success
+                                    ? "bg-emerald-50 text-emerald-700"
+                                    : "bg-red-50 text-red-700"
                                 }
                             `}
                         >

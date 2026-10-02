@@ -71,3 +71,13 @@ export function markHydrated() {
 export function useHydration() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
+
+/**
+ * Use this for values that come from persisted browser state (cart, wishlist,
+ * auth data, etc.). It returns the real value only after hydration is complete,
+ * otherwise it falls back to a safe server-compatible value.
+ */
+export function useHydratedValue<T>(value: T, fallback: T): T {
+  const hydrated = useHydration();
+  return hydrated ? value : fallback;
+}

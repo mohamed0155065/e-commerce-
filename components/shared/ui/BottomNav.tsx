@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, ShoppingBag, User } from "lucide-react";
 
 import { useCartStore } from "@/featues/card/store/useCartStore";
-import { useHydration } from "@/store/useHydration";
+import { useHydratedValue } from "@/store/useHydration";
 
 const ITEMS = [
   {
@@ -30,9 +30,9 @@ const ITEMS = [
 
 export const BottomNav = () => {
   const pathname = usePathname();
-  const mounted = useHydration();
 
   const totalItems = useCartStore((state) => state.getTotalItems());
+  const safeTotalItems = useHydratedValue(totalItems, 0);
 
   return (
     <nav
@@ -63,9 +63,9 @@ export const BottomNav = () => {
 
         Cart
 
-        {mounted && totalItems > 0 && (
+        {safeTotalItems > 0 && (
           <span className="absolute right-6 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#285943] px-1 text-[9px] font-bold text-white">
-            {totalItems > 9 ? "9+" : totalItems}
+            {safeTotalItems > 9 ? "9+" : safeTotalItems}
           </span>
         )}
       </Link>

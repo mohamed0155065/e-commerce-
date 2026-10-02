@@ -86,6 +86,7 @@ export const useWishlistStore = create<WishlistState>()(
         {
             // Storage key in localStorage for persistence
             name: 'wishlist',
+            skipHydration: true,
         }
     )
 );

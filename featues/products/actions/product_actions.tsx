@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabaseServer";
 
 import { productSchema } from "../valiators/product_schema";
-import { productService } from "../services/productService";
+import { productService } from "../types/services/productService";
 import type { Product } from "../types/products.types";
 
 /**
