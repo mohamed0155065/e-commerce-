@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ChevronDown, Heart, LogOut, Package, ShoppingCart, Truck, User } from "lucide-react";
 import { useCartStore } from "@/featues/card/store/useCartStore";
 import { useWishlistStore } from "@/featues/wishlist/store/useWishlistStore";
 import { CartDrawer } from "@/featues/card/components/CartDrawer";
 import { SearchBar } from "./SearchBar";
+import { LocaleSwitcher } from "./LocaleSwitcher";
 import { supabase } from "@/lib/supabase";
 import { useHydratedValue, useHydration } from "@/store/useHydration";
+import { Link, useRouter } from "@/i18n/navigation";
 
 export const Navbar = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -17,6 +18,8 @@ export const Navbar = () => {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const t = useTranslations("nav");
+  const common = useTranslations("common");
 
   const totalItems = useCartStore((state) => state.getTotalItems());
   const totalWishlisted = useWishlistStore((state) => state.items.length);
@@ -65,14 +68,16 @@ export const Navbar = () => {
     router.refresh();
   };
 
-  const cartLabel = mounted ? `Open cart with ${safeTotalItems} items` : "Open cart";
+  const cartLabel = mounted
+    ? t("openCart", { count: safeTotalItems })
+    : t("cart");
   const initial = userEmail ? userEmail.charAt(0).toUpperCase() : "";
 
   return (
     <header className="sticky top-0 z-50 bg-white">
-      <div className="flex h-8 items-center justify-center gap-2 bg-[#0d3d21] px-4 text-xs font-medium text-white">
+      <div className="flex h-8 items-center justify-center gap-2 bg-[var(--brand)] px-4 text-xs font-medium text-white">
         <Truck size={14} aria-hidden="true" />
-        <span>Free shipping on orders over $50</span>
+        <span>{t("shippingBanner")}</span>
       </div>
 
       <div className="border-b border-stone-200">
@@ -80,10 +85,10 @@ export const Navbar = () => {
           <Link
             href="/"
             className="shrink-0 text-xl font-bold tracking-[-.07em] text-stone-900"
-            aria-label="Marketly home"
+            aria-label={`Marketly ${common("home")}`}
           >
             marketly
-            <span className="text-[#14532d]">.</span>
+            <span className="text-[var(--brand)]">.</span>
           </Link>
 
 
@@ -91,25 +96,22 @@ export const Navbar = () => {
             <SearchBar />
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-5 sm:ml-0">
+          <div className="ms-auto flex shrink-0 items-center gap-5 sm:ms-0">
+            <LocaleSwitcher />
             <Link
               href="/wishlist"
               className="relative hidden items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950 sm:flex"
-              aria-label={
-                mounted
-                  ? `Open wishlist with ${safeTotalWishlisted} items`
-                  : "Open wishlist"
-              }
+              aria-label={mounted ? t("openWishlist", { count: safeTotalWishlisted }) : t("wishlist")}
             >
               <span className="relative">
                 <Heart size={19} aria-hidden="true" />
                 {mounted && safeTotalWishlisted > 0 && (
-                  <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[#14532d] px-1 text-[10px] font-semibold text-white">
+                  <span className="absolute -end-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand)] px-1 text-[10px] font-semibold text-white">
                     {safeTotalWishlisted}
                   </span>
                 )}
               </span>
-              <span className="hidden lg:inline">Wishlist</span>
+              <span className="hidden lg:inline">{t("wishlist")}</span>
             </Link>
 
             <button
@@ -123,12 +125,12 @@ export const Navbar = () => {
               <span className="relative">
                 <ShoppingCart size={19} aria-hidden="true" />
                 {mounted && safeTotalItems > 0 && (
-                  <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[#14532d] px-1 text-[10px] font-semibold text-white">
+                  <span className="absolute -end-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand)] px-1 text-[10px] font-semibold text-white">
                     {safeTotalItems}
                   </span>
                 )}
               </span>
-              <span className="hidden lg:inline">Cart</span>
+              <span className="hidden lg:inline">{t("cart")}</span>
             </button>
 
             {mounted && userEmail ? (
@@ -137,12 +139,12 @@ export const Navbar = () => {
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setIsAccountOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-100"
-                  aria-label="Account menu"
+                  className="flex items-center gap-2 rounded-full py-1 ps-1 pe-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-100"
+                  aria-label={t("accountMenu")}
                   aria-haspopup="menu"
                   aria-expanded={isAccountOpen}
                 >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#14532d] text-xs font-semibold leading-none text-white">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold leading-none text-white">
                     {initial}
                   </span>
                   <ChevronDown
@@ -155,7 +157,7 @@ export const Navbar = () => {
                 {isAccountOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-[calc(100%+10px)] w-56 rounded-xl border border-stone-200 bg-white py-1.5 shadow-[0_12px_32px_rgb(28_29_26/0.12)] before:absolute before:-top-1.5 before:right-4 before:h-3 before:w-3 before:rotate-45 before:border-l before:border-t before:border-stone-200 before:bg-white"
+                    className="absolute end-0 top-[calc(100%+10px)] w-56 rounded-xl border border-stone-200 bg-white py-1.5 shadow-[0_12px_32px_rgb(28_29_26/0.12)] before:absolute before:-top-1.5 before:end-4 before:h-3 before:w-3 before:rotate-45 before:border-s before:border-t before:border-stone-200 before:bg-white"
                   >
 
 
@@ -168,7 +170,7 @@ export const Navbar = () => {
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 transition-colors hover:bg-stone-50"
                     >
                       <Package size={16} className="text-stone-400" aria-hidden="true" />
-                      My Orders
+                      {t("myOrders")}
                     </Link>
 
                     <div className="border-t border-stone-100" />
@@ -177,10 +179,10 @@ export const Navbar = () => {
                       type="button"
                       role="menuitem"
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-start text-sm text-red-600 transition-colors hover:bg-red-50"
                     >
                       <LogOut size={16} aria-hidden="true" />
-                      Sign out
+                      {t("signOut")}
                     </button>
                   </div>
                 )}
@@ -189,10 +191,10 @@ export const Navbar = () => {
               <Link
                 href="/login"
                 className="flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950"
-                aria-label="Sign in"
+                aria-label={t("signIn")}
               >
                 <User size={19} aria-hidden="true" />
-                <span className="hidden lg:inline">Sign in</span>
+                <span className="hidden lg:inline">{t("signIn")}</span>
               </Link>
             )}
           </div>

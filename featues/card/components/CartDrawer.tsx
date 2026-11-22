@@ -1,13 +1,18 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo } from "react";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useCartStore } from "../store/useCartStore";
 import { useHydration } from "@/store/useHydration";
+import { Link } from "@/i18n/navigation";
+import { formatUSD } from "@/i18n/formatters";
 
 export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const locale = useLocale();
+  const t = useTranslations("cart");
+  const common = useTranslations("common");
   /**
    * Senior-level fix: this component previously did
    *
@@ -67,22 +72,22 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   return createPortal(
     <>
-      <div onClick={onClose} className={`fixed inset-0 z-70 bg-stone-950/35 transition-opacity ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`} aria-hidden="true" />
-      <aside role="dialog" aria-modal="true" aria-label="Shopping cart" className={`fixed right-0 top-0 z-71 flex h-dvh w-full max-w-md flex-col bg-[#f7f7f4] shadow-2xl transition-transform duration-300 ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div onClick={onClose} className={`fixed inset-0 z-70 bg-black/35 transition-opacity ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"}`} aria-hidden="true" />
+      <aside role="dialog" aria-modal="true" aria-label={t("title")} className={`fixed end-0 top-0 z-71 flex h-dvh w-full max-w-md flex-col bg-[var(--canvas)] shadow-2xl transition-transform duration-300 ${isOpen ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full"}`}>
         <header className="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
           <div>
-            <p className="text-base font-semibold">Your cart</p>
-            <p className="mt-0.5 text-xs text-stone-500">{count ? `${count} item${count === 1 ? "" : "s"}` : "No items yet"}</p>
+            <p className="text-base font-semibold">{t("title")}</p>
+            <p className="mt-0.5 text-xs text-stone-500">{count ? t("items", { count }) : t("emptyCount")}</p>
           </div>
-          <button onClick={onClose} className="grid h-9 w-9 place-items-center text-stone-600 hover:bg-stone-100" aria-label="Close cart"><X size={19} /></button>
+          <button onClick={onClose} className="grid h-9 w-9 place-items-center text-stone-600 hover:bg-stone-100" aria-label={common("close")}><X size={19} /></button>
         </header>
         {items.length === 0 ? (
           <div className="grid flex-1 place-items-center px-8 text-center">
             <div>
               <ShoppingBag className="mx-auto text-stone-400" size={30} />
-              <h2 className="mt-4 font-semibold">Your cart is empty</h2>
-              <p className="mt-2 text-sm leading-6 text-stone-500">Find something useful for the every day.</p>
-              <Link onClick={onClose} href="/" className="mt-6 inline-block bg-[#285943] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1d4534]">Browse products</Link>
+              <h2 className="mt-4 font-semibold">{t("emptyTitle")}</h2>
+              <p className="mt-2 text-sm leading-6 text-stone-500">{t("emptyDescription")}</p>
+              <Link onClick={onClose} href="/" className="mt-6 inline-block bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-hover)]">{t("browse")}</Link>
             </div>
           </div>
         ) : (
@@ -96,14 +101,14 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{item.Name}</p>
-                      <p className="mt-1 text-sm text-stone-600">${item.Price.toLocaleString()}</p>
+                      <p className="mt-1 text-sm text-stone-600">{formatUSD(locale, item.Price)}</p>
                       <div className="mt-3 flex items-center justify-between">
                         <div className="flex border border-stone-300">
-                          <button onClick={() => removeItem(item.id)} className="grid h-7 w-7 place-items-center hover:bg-stone-100" aria-label={`Reduce ${item.Name} quantity`}><Minus size={13} /></button>
+                          <button onClick={() => removeItem(item.id)} className="grid h-7 w-7 place-items-center hover:bg-stone-100" aria-label={common("reduce", { name: item.Name })}><Minus size={13} /></button>
                           <span className="grid w-7 place-items-center text-xs font-semibold">{item.quantity}</span>
-                          <button onClick={() => addItem(item)} className="grid h-7 w-7 place-items-center hover:bg-stone-100" aria-label={`Increase ${item.Name} quantity`}><Plus size={13} /></button>
+                          <button onClick={() => addItem(item)} className="grid h-7 w-7 place-items-center hover:bg-stone-100" aria-label={common("increase", { name: item.Name })}><Plus size={13} /></button>
                         </div>
-                        <button onClick={() => removeAllOfItem(item.id)} className="text-stone-500 hover:text-red-700" aria-label={`Remove ${item.Name}`}><Trash2 size={16} /></button>
+                        <button onClick={() => removeAllOfItem(item.id)} className="text-stone-500 hover:text-red-700" aria-label={common("remove", { name: item.Name })}><Trash2 size={16} /></button>
                       </div>
                     </div>
                   </li>
@@ -112,14 +117,14 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             </div>
             <footer className="border-t border-stone-200 bg-white p-5">
               <div className="flex justify-between text-sm text-stone-600">
-                <span>Delivery</span>
-                <span className="font-medium text-[#23734d]">Free</span>
+                <span>{common("delivery")}</span>
+                <span className="font-medium text-[var(--accent)]">{common("free")}</span>
               </div>
               <div className="mt-4 flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span>${total.toLocaleString()}</span>
+                <span>{common("total")}</span>
+                <span>{formatUSD(locale, total)}</span>
               </div>
-              <Link onClick={onClose} href="/checkout" className="mt-5 flex items-center justify-center bg-[#285943] px-4 py-3.5 text-sm font-semibold text-white hover:bg-[#1d4534]">Continue to checkout</Link>
+              <Link onClick={onClose} href="/checkout" className="mt-5 flex items-center justify-center bg-[var(--brand)] px-4 py-3.5 text-sm font-semibold text-white hover:bg-[var(--brand-hover)]">{t("checkout")}</Link>
             </footer>
           </>
         )}

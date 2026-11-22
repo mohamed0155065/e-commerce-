@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import { Bell, ChevronDown, Menu } from "lucide-react";
+import { LocaleSwitcher } from "@/components/shared/ui/LocaleSwitcher";
 
 /**
  * Route -> heading map for the top bar title.
@@ -12,12 +14,6 @@ import { Bell, ChevronDown, Menu } from "lucide-react";
  * chrome (this component), not duplicated as a prop threaded through every
  * admin route.
  */
-const PAGE_TITLES: Record<string, string> = {
-    "/admin/dashboard": "Dashboard",
-    "/admin/dashboard/orders": "Orders",
-    "/admin/dashboard/products": "Products",
-};
-
 export default function AdminTopbar({
     userEmail,
     onOpenMobileNav,
@@ -27,14 +23,13 @@ export default function AdminTopbar({
 }) {
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
+    const t = useTranslations("admin");
 
-    const title =
-        PAGE_TITLES[pathname] ??
-        (pathname.startsWith("/admin/dashboard/orders")
-            ? "Orders"
-            : pathname.startsWith("/admin/dashboard/products")
-                ? "Products"
-                : "Dashboard");
+    const title = pathname.startsWith("/admin/dashboard/orders")
+        ? t("orders")
+        : pathname.startsWith("/admin/dashboard/products")
+            ? t("products")
+            : t("dashboard");
 
     return (
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-stone-200 bg-white px-4 lg:px-8">
@@ -42,7 +37,7 @@ export default function AdminTopbar({
                 <button
                     type="button"
                     onClick={onOpenMobileNav}
-                    aria-label="Open admin navigation"
+                    aria-label={t("openNavigation")}
                     className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:hidden"
                 >
                     <Menu size={20} />
@@ -52,14 +47,15 @@ export default function AdminTopbar({
             </div>
 
             <div className="flex items-center gap-4">
+                <LocaleSwitcher />
                 <button
                     type="button"
-                    aria-label="Notifications"
+                    aria-label={t("notifications")}
                     className="relative grid size-9 place-items-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-800"
                 >
                     <Bell size={18} />
                     <span
-                        className="absolute right-2 top-2 size-2 rounded-full bg-emerald-500 ring-2 ring-white"
+                        className="absolute end-2 top-2 size-2 rounded-full bg-emerald-500 ring-2 ring-white"
                         aria-hidden="true"
                     />
                 </button>
@@ -70,14 +66,14 @@ export default function AdminTopbar({
                         onClick={() => setMenuOpen((value) => !value)}
                         aria-haspopup="menu"
                         aria-expanded={menuOpen}
-                        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-stone-100"
+                        className="flex items-center gap-2 rounded-full py-1 ps-1 pe-2 hover:bg-stone-100"
                     >
-                        <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#14532d] text-xs font-semibold text-white">
-                            {(userEmail?.[0] ?? "A").toUpperCase()}
+                        <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white">
+                            {(userEmail?.[0] ?? t("admin")[0]).toUpperCase()}
                         </div>
 
                         <span className="hidden max-w-[180px] truncate text-sm font-medium text-stone-700 sm:inline">
-                            {userEmail ?? "Admin"}
+                            {userEmail ?? t("admin")}
                         </span>
 
                         <ChevronDown size={14} className="text-stone-500" />
@@ -98,16 +94,16 @@ export default function AdminTopbar({
 
                             <div
                                 role="menu"
-                                className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-stone-200 bg-white p-2 shadow-lg"
+                                className="absolute end-0 z-50 mt-2 w-56 rounded-xl border border-stone-200 bg-white p-2 shadow-lg"
                             >
                                 <p className="truncate px-2 py-1.5 text-xs text-stone-500">
-                                    Signed in as
+                                    {t("signedInAs")}
                                 </p>
                                 <p
                                     className="truncate px-2 pb-1.5 text-sm font-medium text-stone-900"
                                     title={userEmail ?? undefined}
                                 >
-                                    {userEmail ?? "Admin"}
+                                    {userEmail ?? t("admin")}
                                 </p>
                             </div>
                         </>

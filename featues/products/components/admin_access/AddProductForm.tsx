@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useEffect, useRef } from "react";
 import type { ChangeEvent, ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 import { addProductAction } from "../../actions/product_actions";
 import {
@@ -27,6 +28,8 @@ const INITIAL_STATE = { success: false, message: "" };
  * product forms should read as the same product, not two different apps.
  */
 export default function AddProductForm() {
+    const t = useTranslations("admin");
+    const categories = useTranslations("home");
     const [state, formAction, isPending] = useActionState(
         addProductAction,
         INITIAL_STATE
@@ -73,16 +76,16 @@ export default function AddProductForm() {
         >
             <div className="mb-6 space-y-1">
                 <h2 className="text-lg font-semibold tracking-tight text-stone-950 sm:text-xl">
-                    Publish product
+                    {t("publishProduct")}
                 </h2>
                 <p className="text-sm text-stone-500">
-                    Add a new product to your store inventory.
+                    {t("publishProductDescription")}
                 </p>
             </div>
 
             <form ref={formRef} action={formAction} className="space-y-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField label="Product title">
+                    <FormField label={t("productTitle")}>
                         <input
                             name="name"
                             required
@@ -92,7 +95,7 @@ export default function AddProductForm() {
                         />
                     </FormField>
 
-                    <FormField label="Price ($)">
+                    <FormField label={t("price")}>
                         <input
                             name="price"
                             required
@@ -107,7 +110,7 @@ export default function AddProductForm() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormField label="Category">
+                    <FormField label={t("category")}>
                         <select
                             name="category"
                             required
@@ -115,16 +118,16 @@ export default function AddProductForm() {
                             defaultValue="laptop"
                             className={inputClassName}
                         >
-                            <option value="laptop">Laptop</option>
-                            <option value="phones">Phones</option>
-                            <option value="smart_watches">Smart Watches</option>
-                            <option value="headphones">Headphones</option>
-                            <option value="earbuds">Earbuds</option>
-                            <option value="other">Other</option>
+                            <option value="laptop">{categories("categories.laptop")}</option>
+                            <option value="phones">{categories("categories.phones")}</option>
+                            <option value="smart_watches">{categories("categories.smart_watches")}</option>
+                            <option value="headphones">{categories("categories.headphones")}</option>
+                            <option value="earbuds">{categories("categories.earbuds")}</option>
+                            <option value="other">{categories("categories.other")}</option>
                         </select>
                     </FormField>
 
-                    <FormField label="Stock quantity">
+                    <FormField label={t("stockQuantity")}>
                         <input
                             name="stock"
                             type="number"
@@ -137,20 +140,20 @@ export default function AddProductForm() {
                         />
                     </FormField>
 
-                    <FormField label="Status">
+                    <FormField label={t("status")}>
                         <select
                             name="status"
                             defaultValue="active"
                             disabled={isPending}
                             className={inputClassName}
                         >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active">{t("active")}</option>
+                            <option value="inactive">{t("inactive")}</option>
                         </select>
                     </FormField>
                 </div>
 
-                <FormField label="Description">
+                <FormField label={t("description")}>
                     <textarea
                         name="description"
                         required
@@ -161,7 +164,7 @@ export default function AddProductForm() {
                 </FormField>
 
                 <div className="space-y-1.5">
-                    <label className={labelClassName}>Product image</label>
+                    <label className={labelClassName}>{t("productImage")}</label>
 
                     <div
                         className="
@@ -186,7 +189,7 @@ export default function AddProductForm() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                                 src={preview}
-                                alt="Selected product preview"
+                                alt={t("selectedPreview")}
                                 className="max-h-40 max-w-full rounded-lg object-contain"
                             />
                         ) : (
@@ -196,10 +199,10 @@ export default function AddProductForm() {
                                     className="mb-2.5 h-8 w-8 text-stone-400"
                                 />
                                 <p className="text-sm font-medium text-stone-600">
-                                    Click to upload product image
+                                    {t("uploadImage")}
                                 </p>
                                 <span className="mt-0.5 text-xs text-stone-400">
-                                    JPG, PNG or WEBP
+                                    {t("imageFormats")}
                                 </span>
                             </>
                         )}
@@ -220,7 +223,7 @@ export default function AddProductForm() {
                         ) : (
                             <AlertCircle size={17} className="shrink-0" aria-hidden="true" />
                         )}
-                        {state.message}
+                        {state.success ? t("productPublished") : t("productSaveError")}
                     </div>
                 )}
 
@@ -229,21 +232,21 @@ export default function AddProductForm() {
                     disabled={isPending}
                     className="
                         inline-flex w-full items-center justify-center gap-2
-                        rounded-lg bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white
-                        transition-colors hover:bg-emerald-700
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600
+                        rounded-lg bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white
+                        transition-colors hover:bg-[var(--brand-hover)]
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]
                         disabled:cursor-not-allowed disabled:bg-stone-300
                     "
                 >
                     {isPending ? (
                         <>
                             <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-                            Publishing...
+                            {t("publishing")}
                         </>
                     ) : (
                         <>
                             <Upload size={16} aria-hidden="true" />
-                            Publish product
+                            {t("publishProduct")}
                         </>
                     )}
                 </button>

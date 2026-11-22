@@ -2,9 +2,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { supabaseServer } from '@/lib/supabaseServer'
 
 function authErrorRedirect(request: NextRequest, error: string) {
-    const returnTo = request.nextUrl.searchParams.get('errorReturnTo')
-    const page = returnTo === '/register' ? '/register' : '/login'
-    const url = new URL(page, request.url)
+    const returnTo = safeNextPath(
+        request.nextUrl.searchParams.get('errorReturnTo'),
+        request.nextUrl.origin
+    )
+    const returnUrl = new URL(returnTo, request.url)
+    const isAuthPage = /^\/(?:ar\/)?(?:login|register)$/.test(returnUrl.pathname)
+    const url = new URL(isAuthPage ? `${returnUrl.pathname}${returnUrl.search}` : '/login', request.url)
     url.searchParams.set('error', error)
     return NextResponse.redirect(url)
 }

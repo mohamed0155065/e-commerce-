@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import {
   Bar,
   BarChart,
@@ -20,13 +21,11 @@ type SalesPoint = {
  * Prevents wide 4-5 digit labels from forcing the Y-axis column wider than
  * its allotted width, which is what was clipping the numbers before.
  */
-const compactFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-
-function formatTick(value: number) {
-  return compactFormatter.format(value);
+function formatTick(locale: string, value: number) {
+  return new Intl.NumberFormat(locale, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 /**
@@ -41,6 +40,8 @@ export default function SalesChart({
 }: {
   data: SalesPoint[];
 }) {
+  const locale = useLocale();
+  const t = useTranslations("admin");
   const maxValue = Math.max(
     ...data.map((item) => Number(item.amount) || 0),
     0
@@ -55,21 +56,21 @@ export default function SalesChart({
       {/* ------------------------------------------------------------------ */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#285943]">
-            Performance
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand)]">
+            {t("performance")}
           </p>
 
           <h2 className="mt-1.5 text-lg sm:text-xl font-semibold tracking-tight text-stone-950">
-            Sales performance
+            {t("salesPerformance")}
           </h2>
 
           <p className="mt-1 text-sm text-stone-500">
-            Revenue across the latest 7 days.
+            {t("revenue7Days")}
           </p>
         </div>
 
         <span className="inline-flex w-fit items-center rounded-lg bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 ring-1 ring-inset ring-stone-200">
-          Last 7 days
+          {t("last7Days")}
         </span>
       </div>
 
@@ -100,7 +101,7 @@ export default function SalesChart({
                 axisLine={false}
                 tickLine={false}
                 tick={{
-                  fill: "#8a8d86",
+                  fill: "var(--muted)",
                   fontSize: 11,
                 }}
                 dy={9}
@@ -110,25 +111,30 @@ export default function SalesChart({
                 axisLine={false}
                 tickLine={false}
                 tick={{
-                  fill: "#8a8d86",
+                  fill: "var(--muted)",
                   fontSize: 11,
                 }}
                 width={56}
-                tickFormatter={formatTick}
+                tickFormatter={(value) => formatTick(locale, Number(value))}
                 domain={[0, Math.max(maxValue, 100)]}
               />
 
               <Tooltip
                 cursor={{
-                  fill: "#f5f6f2",
+                  fill: "var(--canvas)",
                 }}
                 formatter={(value) => [
-                  `$${Number(value).toLocaleString()}`,
-                  "Revenue",
+                  new Intl.NumberFormat(locale, {
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  }).format(Number(value)),
+                  t("revenue"),
                 ]}
                 contentStyle={{
                   borderRadius: 10,
-                  border: "1px solid #e5e7e2",
+                  border: "1px solid var(--line)",
                   boxShadow:
                     "0 12px 30px rgb(28 29 26 / 0.08)",
                 }}
@@ -145,7 +151,7 @@ export default function SalesChart({
           </ResponsiveContainer>
         ) : (
           <div className="grid h-full place-items-center rounded-xl bg-stone-50 text-sm text-stone-500">
-            No sales data yet.
+            {t("noSalesData")}
           </div>
         )}
       </div>

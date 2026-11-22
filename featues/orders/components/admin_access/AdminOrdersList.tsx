@@ -35,10 +35,12 @@ import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Loader2, Package } from "lucide-react";
 import { toast } from "sonner";
+import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { updateOrderStatusAction } from "../../actions/order_actions";
 import type { order, order_item, order_status } from "../../types/orders.types";
 import OrderStatusBadge from "./OrderStatusBadge";
+import { formatDate, formatUSD } from "@/i18n/formatters";
 
 const STATUS_OPTIONS: order_status[] = [
   "pending",
@@ -76,6 +78,9 @@ export default function AdminOrdersList({
   const [orders, setOrders] = useState<order[]>(initialOrders || []);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const locale = useLocale();
+  const t = useTranslations("admin");
+  const statuses = useTranslations("status");
 
   // Tracks status changes this tab just made, so the realtime UPDATE echo
   // for our own write doesn't trigger a redundant "status changed" toast.
@@ -105,8 +110,8 @@ export default function AdminOrdersList({
             if (current.some((o) => o.id === newOrder.id)) return current;
             return [newOrder, ...current];
           });
-          toast.success(`New order from ${newOrder.full_name || "a customer"}`, {
-            description: `$${Number(newOrder.totalPrice || 0).toLocaleString()} · ${newOrder.city || ""}`,
+          toast.success(t("newOrderFrom", { name: newOrder.full_name || t("customerFallback") }), {
+            description: `${formatUSD(locale, Number(newOrder.totalPrice || 0))} · ${newOrder.city || ""}`,
           });
         }
       )
@@ -123,7 +128,10 @@ export default function AdminOrdersList({
             recentLocalUpdates.current.delete(updated.id);
             return;
           }
-          toast.info(`Order #${updated.id} status changed to ${updated.status}`);
+          toast.info(t("orderStatusChanged", {
+            id: updated.id,
+            status: statuses.has(updated.status) ? statuses(updated.status) : updated.status,
+          }));
         }
       )
       .subscribe();
@@ -133,7 +141,7 @@ export default function AdminOrdersList({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [locale, statuses, t]);
 
   /**
    * handleStatusChange — optimistic status update.
@@ -169,13 +177,16 @@ export default function AdminOrdersList({
         current.map((o) => (o.id === id && previousStatus ? { ...o, status: previousStatus } : o))
       );
       recentLocalUpdates.current.delete(id);
-      toast.error(result.message || "Failed to update order status");
+      toast.error(t("updateStatusFailed"));
     } else {
-      toast.success(`Order #${id} marked as ${nextStatus}`);
+      toast.success(t("orderMarked", {
+        id,
+        status: statuses.has(nextStatus) ? statuses(nextStatus) : nextStatus,
+      }));
     }
 
     setUpdatingId(null);
-  }, []);
+  }, [statuses, t]);
 
   const toggleExpanded = useCallback((id: number) => {
     setExpandedId((current) => (current === id ? null : id));
@@ -192,8 +203,8 @@ export default function AdminOrdersList({
   return (
     <section className="rounded-xl border border-stone-200 bg-white p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Orders</h3>
-        <span className="text-xs text-stone-500">{sortedOrders.length} total</span>
+        <h3 className="text-lg font-semibold">{t("orders")}</h3>
+        <span className="text-xs text-stone-500">{t("orderCount", { count: sortedOrders.length })}</span>
       </div>
 
       {sortedOrders.length === 0 ? (
@@ -224,16 +235,16 @@ export default function AdminOrdersList({
 
           {/* Desktop (>= lg): full table, unchanged behaviour. */}
           <div className="mt-4 hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-215 text-left">
+            <table className="w-full min-w-215 text-start">
               <thead>
                 <tr className="text-sm text-stone-600">
-                  <th className="py-3">Customer</th>
-                  <th className="py-3">Contact</th>
-                  <th className="py-3">Location</th>
-                  <th className="py-3">Total</th>
-                  <th className="py-3">Placed</th>
-                  <th className="py-3">Status</th>
-                  <th className="py-3">Items</th>
+                  <th className="py-3">{t("customer")}</th>
+                  <th className="py-3">{t("contact")}</th>
+                  <th className="py-3">{t("location")}</th>
+                  <th className="py-3">{t("total")}</th>
+                  <th className="py-3">{t("placed")}</th>
+                  <th className="py-3">{t("status")}</th>
+                  <th className="py-3">{t("items")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -276,6 +287,9 @@ const OrderRow = React.memo(function OrderRow({
   onStatusChange: (id: number, status: order_status) => void;
 }) {
   const items = useMemo(() => parseOrderItems(order.items), [order.items]);
+  const locale = useLocale();
+  const t = useTranslations("admin");
+  const statuses = useTranslations("status");
 
   return (
     <>
@@ -291,9 +305,9 @@ const OrderRow = React.memo(function OrderRow({
             {order.address}
           </p>
         </td>
-        <td className="py-3 font-semibold">${Number(order.totalPrice || 0).toLocaleString()}</td>
+        <td className="py-3 font-semibold">{formatUSD(locale, Number(order.totalPrice || 0))}</td>
         <td className="py-3 text-xs text-stone-500">
-          {new Date(order.created_at).toLocaleDateString()}
+          {formatDate(locale, order.created_at)}
         </td>
         <td className="py-3">
           <div className="flex items-center gap-2">
@@ -302,7 +316,7 @@ const OrderRow = React.memo(function OrderRow({
               <Loader2 size={14} className="animate-spin text-stone-400" />
             ) : (
               <select
-                aria-label={`Change status for order ${order.id}`}
+                aria-label={t("changeStatus", { id: order.id })}
                 value={order.status}
                 disabled={isUpdating}
                 onChange={(e) => onStatusChange(order.id, e.target.value as order_status)}
@@ -310,7 +324,7 @@ const OrderRow = React.memo(function OrderRow({
               >
                 {STATUS_OPTIONS.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {statuses.has(status) ? statuses(status) : status}
                   </option>
                 ))}
               </select>
@@ -321,9 +335,9 @@ const OrderRow = React.memo(function OrderRow({
           <button
             type="button"
             onClick={() => onToggleExpanded(order.id)}
-            className="flex items-center gap-1 text-xs text-stone-600 hover:text-[#285943]"
+            className="flex items-center gap-1 text-xs text-stone-600 hover:text-[var(--brand)]"
           >
-            {items.length} item{items.length !== 1 ? "s" : ""}
+            {t("itemsCount", { count: items.length })}
             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </td>
@@ -359,6 +373,9 @@ const OrderCard = React.memo(function OrderCard({
   onStatusChange: (id: number, status: order_status) => void;
 }) {
   const items = useMemo(() => parseOrderItems(order.items), [order.items]);
+  const locale = useLocale();
+  const t = useTranslations("admin");
+  const statuses = useTranslations("status");
 
   return (
     <li className="rounded-lg border border-stone-200 p-3 sm:p-4">
@@ -372,7 +389,7 @@ const OrderCard = React.memo(function OrderCard({
         </div>
 
         <p className="shrink-0 text-sm font-semibold text-stone-900">
-          ${Number(order.totalPrice || 0).toLocaleString()}
+          {formatUSD(locale, Number(order.totalPrice || 0))}
         </p>
       </div>
 
@@ -383,7 +400,7 @@ const OrderCard = React.memo(function OrderCard({
           {order.address}
         </p>
         <p className="mt-0.5">
-          {order.phone} · {new Date(order.created_at).toLocaleDateString()}
+          {order.phone} · {formatDate(locale, order.created_at)}
         </p>
       </div>
 
@@ -395,7 +412,7 @@ const OrderCard = React.memo(function OrderCard({
             <Loader2 size={14} className="animate-spin text-stone-400" />
           ) : (
             <select
-              aria-label={`Change status for order ${order.id}`}
+              aria-label={t("changeStatus", { id: order.id })}
               value={order.status}
               disabled={isUpdating}
               onChange={(e) => onStatusChange(order.id, e.target.value as order_status)}
@@ -403,7 +420,7 @@ const OrderCard = React.memo(function OrderCard({
             >
               {STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {statuses.has(status) ? statuses(status) : status}
                 </option>
               ))}
             </select>
@@ -413,9 +430,9 @@ const OrderCard = React.memo(function OrderCard({
         <button
           type="button"
           onClick={() => onToggleExpanded(order.id)}
-          className="flex min-h-8 items-center gap-1 text-xs font-medium text-stone-600 hover:text-[#285943]"
+          className="flex min-h-8 items-center gap-1 text-xs font-medium text-stone-600 hover:text-[var(--brand)]"
         >
-          {items.length} item{items.length !== 1 ? "s" : ""}
+          {t("itemsCount", { count: items.length })}
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
@@ -434,6 +451,9 @@ const OrderCard = React.memo(function OrderCard({
  * desktop table row and the mobile card so the two surfaces never drift.
  */
 function ItemsList({ items, orderId }: { items: order_item[]; orderId: number }) {
+  const locale = useLocale();
+  const t = useTranslations("admin");
+  const common = useTranslations("common");
   return (
     <ul className="divide-y divide-stone-200">
       {items.map((item, idx) => (
@@ -443,27 +463,28 @@ function ItemsList({ items, orderId }: { items: order_item[]; orderId: number })
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">{item.Name}</p>
-            <p className="text-xs text-stone-500">Qty {item.quantity}</p>
+            <p className="text-xs text-stone-500">{common("quantity", { count: item.quantity })}</p>
           </div>
           <p className="text-sm font-medium">
-            ${(Number(item.Price) * Number(item.quantity)).toLocaleString()}
+            {formatUSD(locale, Number(item.Price) * Number(item.quantity))}
           </p>
         </li>
       ))}
       {items.length === 0 && (
-        <li className="py-2 text-sm text-stone-500">No item details available.</li>
+        <li className="py-2 text-sm text-stone-500">{t("noItemDetails")}</li>
       )}
     </ul>
   );
 }
 
 function EmptyState() {
+  const t = useTranslations("admin");
   return (
     <div className="mt-6 py-10 text-center">
       <Package className="mx-auto text-stone-300" size={28} aria-hidden="true" />
-      <p className="mt-3 text-sm font-medium text-stone-700">No orders yet</p>
+      <p className="mt-3 text-sm font-medium text-stone-700">{t("emptyOrders")}</p>
       <p className="mt-1 text-xs text-stone-500">
-        New orders will appear here automatically.
+        {t("newOrdersAppear")}
       </p>
     </div>
   );

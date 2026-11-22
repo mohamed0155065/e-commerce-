@@ -1,9 +1,11 @@
 "use client"
 
 import Image from "next/image";
-import Link from "next/link";
 import { memo } from "react";
 import { Heart, ShoppingCart, Star } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { formatUSD } from "@/i18n/formatters";
 import { Product } from "../../products/types/products.types";
 import { useCartStore } from "../store/useCartStore";
 import { useWishlistStore } from "@/featues/wishlist/store/useWishlistStore";
@@ -23,6 +25,10 @@ import { useHydration } from "@/store/useHydration";
  *    the only prop and it's stable per item, memo is a cheap, safe win here.
  */
 const ProductCardImpl = ({ product }: { product: Product }) => {
+  const locale = useLocale();
+  const t = useTranslations("product");
+  const common = useTranslations("common");
+  const categories = useTranslations("home");
   const addItem = useCartStore((state) => state.addItem);
   const toggleWishlist = useWishlistStore((state) => state.toggleItem);
   const wishlisted = useWishlistStore((state) =>
@@ -37,8 +43,8 @@ const ProductCardImpl = ({ product }: { product: Product }) => {
       <div className="relative">
         <Link
           href={`/product/${product.id}`}
-          className="block overflow-hidden rounded-lg bg-[#f5f6f2]"
-          aria-label={`View ${product.Name}`}
+          className="block overflow-hidden rounded-lg bg-[var(--canvas)]"
+          aria-label={`${product.Name}`}
         >
           <div className="relative aspect-square">
             <Image
@@ -52,16 +58,20 @@ const ProductCardImpl = ({ product }: { product: Product }) => {
         </Link>
 
         {outOfStock && (
-          <span className="absolute left-2 top-2 rounded-full bg-stone-900/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-            Out of stock
+          <span className="absolute start-2 top-2 rounded-full bg-[#09090B]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+            {common("outOfStock")}
           </span>
         )}
 
         <button
           type="button"
           onClick={() => toggleWishlist(product)}
-          className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-stone-500 shadow-sm transition hover:text-[#b42318]"
-          aria-label={mounted && wishlisted ? `Remove ${product.Name} from wishlist` : `Add ${product.Name} to wishlist`}
+          className="absolute end-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-stone-500 shadow-sm transition hover:text-[#b42318]"
+          aria-label={
+            mounted && wishlisted
+              ? t("removeFromWishlist", { name: product.Name })
+              : t("addToWishlist", { name: product.Name })
+          }
           aria-pressed={mounted && wishlisted}
         >
           <Heart
@@ -75,39 +85,47 @@ const ProductCardImpl = ({ product }: { product: Product }) => {
       <div className="pt-3">
         {product.Category && (
           <p className="truncate text-[11px] font-medium uppercase tracking-wide text-stone-400">
-            {product.Category}
+            {categories.has(`categories.${product.Category}`)
+              ? categories(`categories.${product.Category}`)
+              : product.Category.replaceAll("_", " ")}
           </p>
         )}
 
         <Link href={`/product/${product.id}`}>
-          <h3 className="mt-1 truncate text-sm font-semibold text-stone-900 hover:text-[#14532d]">
+          <h3 className="mt-1 truncate text-sm font-semibold text-stone-900 hover:text-[var(--brand)]">
             {product.Name}
           </h3>
         </Link>
 
         <div className="mt-1.5 flex items-center gap-1">
-          <div className="flex items-center gap-0.5 text-[#e6ad42]">
+          <div className="flex items-center gap-0.5 text-[var(--accent)]">
             {Array.from({ length: 5 }).map((_, index) => (
               <Star
                 key={index}
                 size={13}
-                fill={index < Math.round(rating) ? "#e6ad42" : "none"}
-                color="#e6ad42"
+                fill={index < Math.round(rating) ? "var(--accent)" : "none"}
+                color="var(--accent)"
               />
             ))}
           </div>
-          <span className="text-xs text-stone-400">({rating.toFixed(1)})</span>
+          <span className="text-xs text-stone-400" aria-label={t("rating", { rating })}>
+            ({rating.toFixed(1)})
+          </span>
         </div>
 
         <div className="mt-2.5 flex items-center justify-between gap-3">
           <p className="text-base font-semibold tracking-[-.02em] text-stone-900">
-            ${product.Price.toLocaleString()}
+            {formatUSD(locale, product.Price)}
           </p>
           <button
             onClick={() => !outOfStock && addItem(product)}
             disabled={outOfStock}
-            className="grid h-9 w-9 place-items-center rounded-lg bg-[#14532d] text-white transition hover:bg-[#0d3d21] disabled:bg-stone-300 disabled:cursor-not-allowed"
-            aria-label={outOfStock ? `${product.Name} is out of stock` : `Add ${product.Name} to cart`}
+            className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand)] text-white transition hover:bg-[var(--brand-hover)] disabled:bg-stone-300 disabled:cursor-not-allowed"
+            aria-label={
+              outOfStock
+                ? t("unavailable", { name: product.Name })
+                : t("addToCart", { name: product.Name })
+            }
           >
             <ShoppingCart size={16} />
           </button>

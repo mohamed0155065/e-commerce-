@@ -17,6 +17,7 @@ import {
     Upload,
     X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { updateProductAction } from "../../actions/product_actions";
 import type { Product } from "../../types/products.types";
@@ -83,6 +84,9 @@ export default function EditProductModal({
     onClose,
     onSuccess,
 }: EditProductModalProps) {
+    const t = useTranslations("admin");
+    const common = useTranslations("common");
+    const categories = useTranslations("home.categories");
     /**
      * Bridge the client component's local state type with the
      * Server Action's ActionState-compatible signature.
@@ -213,9 +217,7 @@ export default function EditProductModal({
         }
 
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            setImageError(
-                "Please select a JPG, PNG, or WEBP image."
-            );
+            setImageError(t("imageTypeError"));
 
             event.target.value = "";
 
@@ -223,9 +225,7 @@ export default function EditProductModal({
         }
 
         if (file.size > MAX_IMAGE_SIZE) {
-            setImageError(
-                "Image size must be smaller than 5 MB."
-            );
+            setImageError(t("imageSizeError"));
 
             event.target.value = "";
 
@@ -291,10 +291,10 @@ export default function EditProductModal({
                         type="button"
                         onClick={handleClose}
                         disabled={isPending}
-                        aria-label="Close edit product modal"
-                        title="Close"
+                        aria-label={t("closeEditModal")}
+                        title={t("closeEditModal")}
                         className="
-                            absolute right-3 top-3
+                            absolute end-3 top-3
                             inline-flex min-h-10 min-w-10
                             items-center justify-center
                             rounded-full
@@ -307,7 +307,7 @@ export default function EditProductModal({
                             focus-visible:ring-indigo-600
                             disabled:cursor-not-allowed
                             disabled:opacity-50
-                            sm:right-5 sm:top-5
+                            sm:end-5 sm:top-5
                         "
                     >
                         <X
@@ -316,7 +316,7 @@ export default function EditProductModal({
                         />
                     </button>
 
-                    <div className="space-y-1.5 pr-12 sm:space-y-2">
+                    <div className="space-y-1.5 pe-12 sm:space-y-2">
                         <h2
                             id="edit-product-title"
                             className="
@@ -326,7 +326,7 @@ export default function EditProductModal({
                                 md:text-3xl
                             "
                         >
-                            Edit Product
+                            {t("editProductTitle")}
                         </h2>
 
                         <p
@@ -338,9 +338,7 @@ export default function EditProductModal({
                                 sm:text-sm
                             "
                         >
-                            Update details for &quot;
-                            {product.Name}
-                            &quot;.
+                            {t("editProductDescription", { name: product.Name })}
                         </p>
                     </div>
                 </div>
@@ -369,7 +367,7 @@ export default function EditProductModal({
                     {/* Product title / price */}
 
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                        <FormField label="Product Title">
+                        <FormField label={t("productTitle")}>
                             <input
                                 name="name"
                                 required
@@ -379,7 +377,7 @@ export default function EditProductModal({
                             />
                         </FormField>
 
-                        <FormField label="Price ($)">
+                        <FormField label={t("price")}>
                             <input
                                 name="price"
                                 required
@@ -396,7 +394,7 @@ export default function EditProductModal({
                     {/* Category / stock / status */}
 
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                        <FormField label="Category">
+                        <FormField label={t("category")}>
                             <select
                                 name="category"
                                 required
@@ -404,32 +402,32 @@ export default function EditProductModal({
                                 className={inputClassName}
                             >
                                 <option value="laptop">
-                                    Laptop
+                                    {categories("laptop")}
                                 </option>
 
                                 <option value="phones">
-                                    Phones
+                                    {categories("phones")}
                                 </option>
 
                                 <option value="smart_watches">
-                                    Smart Watches
+                                    {categories("smart_watches")}
                                 </option>
 
                                 <option value="headphones">
-                                    Headphones
+                                    {categories("headphones")}
                                 </option>
 
                                 <option value="earbuds">
-                                    Earbuds
+                                    {categories("earbuds")}
                                 </option>
 
                                 <option value="other">
-                                    Other
+                                    {categories("other")}
                                 </option>
                             </select>
                         </FormField>
 
-                        <FormField label="Stock Quantity">
+                        <FormField label={t("stockQuantity")}>
                             <input
                                 name="stock"
                                 type="number"
@@ -441,18 +439,18 @@ export default function EditProductModal({
                             />
                         </FormField>
 
-                        <FormField label="Status">
+                        <FormField label={t("status")}>
                             <select
                                 name="status"
                                 defaultValue={product.Status}
                                 className={inputClassName}
                             >
                                 <option value="active">
-                                    Active
+                                    {t("active")}
                                 </option>
 
                                 <option value="inactive">
-                                    Inactive
+                                    {t("inactive")}
                                 </option>
                             </select>
                         </FormField>
@@ -460,7 +458,7 @@ export default function EditProductModal({
 
                     {/* Description */}
 
-                    <FormField label="Description">
+                    <FormField label={t("description")}>
                         <textarea
                             name="description"
                             required
@@ -480,12 +478,11 @@ export default function EditProductModal({
                                 htmlFor="product-image"
                                 className={labelClassName}
                             >
-                                Product Image
+                                {t("productImage")}
                             </label>
 
                             <p className="mt-1 text-xs text-slate-400">
-                                Leave empty to keep the current image.
-                                Maximum 5 MB.
+                                {t("keepCurrentImage")} {t("maxFileSize")}
                             </p>
                         </div>
 
@@ -521,7 +518,7 @@ export default function EditProductModal({
                             {previewUrl ? (
                                 <Image
                                     src={previewUrl}
-                                    alt="New product preview"
+                                    alt={t("newProductPreviewAlt")}
                                     width={800}
                                     height={600}
                                     className="
@@ -534,7 +531,7 @@ export default function EditProductModal({
                             ) : product.Image ? (
                                 <Image
                                     src={product.Image}
-                                    alt={`${product.Name} current image`}
+                                    alt={t("currentProductImageAlt", { name: product.Name })}
                                     loading="lazy"
                                     decoding="async"
                                     width={800}
@@ -558,11 +555,11 @@ export default function EditProductModal({
                                     />
 
                                     <p className="text-sm font-semibold text-slate-600">
-                                        Click to upload a new image
+                                        {t("clickUpload")}
                                     </p>
 
                                     <span className="mt-1 text-xs text-slate-400">
-                                        JPG, PNG or WEBP · Max 5 MB
+                                        {t("imageFormats")} · {t("maxFileSize")}
                                     </span>
                                 </>
                             )}
@@ -648,7 +645,7 @@ export default function EditProductModal({
                                 disabled:opacity-50
                             `}
                         >
-                            Cancel
+                            {common("cancel")}
                         </button>
 
                         <button
@@ -667,7 +664,7 @@ export default function EditProductModal({
                                         size={17}
                                         aria-hidden="true"
                                     />
-                                    Saving...
+                                    {t("saving")}
                                 </>
                             ) : (
                                 <>
@@ -675,7 +672,7 @@ export default function EditProductModal({
                                         size={17}
                                         aria-hidden="true"
                                     />
-                                    Save Changes
+                                    {t("saveChanges")}
                                 </>
                             )}
                         </button>
@@ -758,17 +755,17 @@ const primaryButtonClassName = `
     justify-center
     gap-2.5
     rounded-xl
-    bg-slate-900
+    bg-[var(--brand)]
     px-5
     text-sm
     font-bold
     tracking-wide
     text-white
     transition-colors
-    hover:bg-indigo-600
+    hover:bg-[var(--brand-hover)]
     focus-visible:outline-none
     focus-visible:ring-2
-    focus-visible:ring-indigo-500
+    focus-visible:ring-[var(--brand)]
     sm:flex-none
 `;
 

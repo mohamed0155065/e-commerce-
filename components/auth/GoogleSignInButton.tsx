@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 
 type GoogleSignInButtonProps = {
@@ -15,6 +16,7 @@ export default function GoogleSignInButton({
     errorReturnTo = "/login",
 }: GoogleSignInButtonProps) {
     const [loading, setLoading] = useState(false);
+    const t = useTranslations("auth");
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
@@ -22,9 +24,16 @@ export default function GoogleSignInButton({
 
         try {
             const redirectTo = new URL("/auth/callback", window.location.origin);
-            const nextPath = new URLSearchParams(window.location.search).get("redirect") ?? "/";
+            const localePrefix = window.location.pathname.startsWith("/ar/") ? "/ar" : "";
+            const redirectPath = new URLSearchParams(window.location.search).get("redirect");
+            const nextPath = redirectPath
+                ? `${localePrefix}${redirectPath === "/" ? "" : redirectPath}`
+                : localePrefix || "/";
             redirectTo.searchParams.set("next", nextPath);
-            redirectTo.searchParams.set("errorReturnTo", errorReturnTo);
+            redirectTo.searchParams.set(
+                "errorReturnTo",
+                window.location.pathname || errorReturnTo
+            );
 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
@@ -32,11 +41,11 @@ export default function GoogleSignInButton({
             });
 
             if (error) {
-                onError("Google sign-in could not be started. Please try again.");
+                onError(t("googleStartFailed"));
                 setLoading(false);
             }
         } catch {
-            onError("Google sign-in could not be started. Please try again.");
+            onError(t("googleStartFailed"));
             setLoading(false);
         }
     };
@@ -54,7 +63,7 @@ export default function GoogleSignInButton({
                 <path fill="#FBBC05" d="M13 28c-.5-1.2-.8-2.6-.8-4s.3-2.8.8-4l-6.8-5.2C4.8 17.7 4 20.8 4 24s.8 6.3 2.2 9.2L13 28Z" />
                 <path fill="#EA4335" d="M24 12c3 0 5.7 1 7.8 3l5.8-5.8C34 5.7 29.4 4 24 4 16.2 4 9.5 8.3 6.2 14.8L13 20c1.6-4.6 5.9-8 11-8Z" />
             </svg>
-            {loading ? "Connecting to Google..." : label}
+            {loading ? t("connectingGoogle") : label}
         </button>
     );
 }

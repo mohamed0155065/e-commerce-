@@ -1,92 +1,143 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import createMiddleware from "next-intl/middleware";
+import { NextResponse, type NextRequest } from "next/server";
+
+import { routing } from "@/i18n/routing";
+
+const handleI18nRouting = createMiddleware(routing);
+
+function getLocale(pathname: string) {
+  const firstSegment = pathname.split("/")[1];
+  return routing.locales.includes(firstSegment as (typeof routing.locales)[number])
+    ? firstSegment
+    : routing.defaultLocale;
+}
+
+function stripLocale(pathname: string, locale: string) {
+  if (pathname === `/${locale}`) return "/";
+  return pathname.startsWith(`/${locale}/`)
+    ? pathname.slice(locale.length + 1)
+    : pathname;
+}
+
+function localizedPath(pathname: string, locale: string) {
+  return locale === routing.defaultLocale
+    ? pathname
+    : `/${locale}${pathname === "/" ? "" : pathname}`;
+}
 
 export async function proxy(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = handleI18nRouting(request);
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll()
-                },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value }) =>
-                        request.cookies.set(name, value)
-                    )
-                    supabaseResponse = NextResponse.next({ request })
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    )
-                },
-            },
-        }
-    )
+  if (supabaseResponse.status >= 300 && supabaseResponse.status < 400) {
+    return supabaseResponse;
+  }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const path = request.nextUrl.pathname
-    const redirectWithCookies = (url: URL) => {
-        const response = NextResponse.redirect(url)
-        supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
-        return response
+  const locale = getLocale(request.nextUrl.pathname);
+  const path = stripLocale(request.nextUrl.pathname, locale);
+  const isAdminArea = path.startsWith("/admin") && path !== "/admin/login";
+  const isAdminLoginPage = path === "/admin/login";
+  const isUserLoginPage = path === "/login";
+  const isRegisterPage = path === "/register";
+  const isCheckoutPage = path === "/checkout";
+  const isOrdersPage = path === "/orders";
+
+  if (
+    !isAdminArea &&
+    !isAdminLoginPage &&
+    !isUserLoginPage &&
+    !isRegisterPage &&
+    !isCheckoutPage &&
+    !isOrdersPage
+  ) {
+    return supabaseResponse;
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          const response = NextResponse.next({ request });
+          supabaseResponse.cookies.getAll().forEach((cookie) => {
+            response.cookies.set(cookie);
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+          supabaseResponse = response;
+        },
+      },
     }
+  );
 
-    let role: string | null = null
-    if (user) {
-        const claimedRole = (user.app_metadata as { role?: string } | null)?.role
-        if (claimedRole) {
-            role = claimedRole
-        } else {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single()
-            role = profile?.role ?? 'user'
-        }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const redirectWithCookies = (pathname: string) => {
+    const response = NextResponse.redirect(
+      new URL(localizedPath(pathname, locale), request.url)
+    );
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie);
+    });
+    return response;
+  };
+
+  let role: string | null = null;
+  if (user) {
+    const claimedRole = (user.app_metadata as { role?: string } | null)?.role;
+    if (claimedRole) {
+      role = claimedRole;
+    } else {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      role = profile?.role ?? "user";
     }
+  }
 
-    const isAdminArea = path.startsWith('/admin') && path !== '/admin/login'
-    const isAdminLoginPage = path === '/admin/login'
-    const isUserLoginPage = path === '/login'
-    const isRegisterPage = path === '/register'
-    const isCheckoutPage = path === '/checkout'
-    const isOrdersPage = path === '/orders'
+  if (isAdminArea) {
+    if (!user) return redirectWithCookies("/admin/login");
+    if (role !== "admin") return redirectWithCookies("/");
+    return supabaseResponse;
+  }
 
-    if (isAdminArea) {
-        if (!user) {
-            return redirectWithCookies(new URL('/admin/login', request.url))
-        }
-        if (role !== 'admin') {
-            return redirectWithCookies(new URL('/', request.url))
-        }
-        return supabaseResponse
-    }
+  if ((isCheckoutPage || isOrdersPage) && !user) {
+    const redirectTo = path;
+    const login = new URL(localizedPath("/login", locale), request.url);
+    login.searchParams.set("redirect", redirectTo);
+    const response = NextResponse.redirect(login);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie);
+    });
+    return response;
+  }
 
-    if (isCheckoutPage && !user) {
-        const url = new URL('/login', request.url)
-        url.searchParams.set('redirect', '/checkout')
-        return redirectWithCookies(url)
-    }
-    if (isOrdersPage && !user) {
-        const url = new URL('/login', request.url)
-        url.searchParams.set('redirect', '/orders')
-        return redirectWithCookies(url)
-    }
+  if (
+    user &&
+    role === "admin" &&
+    (isAdminLoginPage || isUserLoginPage || isRegisterPage)
+  ) {
+    return redirectWithCookies("/admin/dashboard");
+  }
 
-    if (user && role === 'admin' && (isAdminLoginPage || isUserLoginPage || isRegisterPage)) {
-        return redirectWithCookies(new URL('/admin/dashboard', request.url))
-    }
+  if (user && role === "user" && (isUserLoginPage || isRegisterPage)) {
+    return redirectWithCookies("/");
+  }
 
-    if (user && role === 'user' && (isUserLoginPage || isRegisterPage)) {
-        return redirectWithCookies(new URL('/', request.url))
-    }
-
-    return supabaseResponse
+  return supabaseResponse;
 }
 
 export const config = {
-    matcher: ['/admin/:path*', '/login', '/register', '/checkout', '/orders'],
-}
+  matcher: ["/((?!api|auth/callback|_next|_vercel|.*\\..*).*)"],
+};

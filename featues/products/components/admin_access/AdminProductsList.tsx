@@ -4,6 +4,8 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { Edit, Loader2, Trash2, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { formatUSD } from "@/i18n/formatters";
 
 import { Product } from "../../types/products.types";
 import { deleteProductAction } from "../../actions/product_actions";
@@ -16,6 +18,8 @@ interface AdminProductsListProps {
 export default function AdminProductsList({
   initialProducts,
 }: AdminProductsListProps) {
+  const t = useTranslations("admin");
+  const common = useTranslations("common");
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -58,7 +62,7 @@ export default function AdminProductsList({
       if (!result.success) {
         setAlertMessage({
           type: "error",
-          text: result.message || "Failed to delete product.",
+          text: t("deleteFailed"),
         });
         return;
       }
@@ -69,14 +73,14 @@ export default function AdminProductsList({
 
       setAlertMessage({
         type: "success",
-        text: "Product deleted successfully.",
+        text: t("deleteSuccess"),
       });
     } catch (error) {
       console.error("Delete product error:", error);
 
       setAlertMessage({
         type: "error",
-        text: "Failed to delete product. Please try again.",
+        text: t("deleteFailed"),
       });
     } finally {
       setDeletingId(null);
@@ -107,11 +111,11 @@ export default function AdminProductsList({
             id="products-heading"
             className="text-base font-semibold text-stone-900 sm:text-lg"
           >
-            Products
+            {t("products")}
           </h3>
 
           <p className="mt-1 text-xs text-stone-500 sm:text-sm">
-            {products.length} {products.length === 1 ? "product" : "products"}
+            {t("productsCount", { count: products.length })}
           </p>
         </div>
       </div>
@@ -141,29 +145,29 @@ export default function AdminProductsList({
               Keep the semantic table for larger viewports.
           ============================================================ */}
           <div className="mt-5 hidden overflow-x-auto md:block">
-            <table className="w-full min-w-190 text-left">
+            <table className="w-full min-w-190 text-start">
               <thead>
                 <tr className="border-b border-stone-200 text-xs font-medium uppercase tracking-wide text-stone-500">
                   <th scope="col" className="px-3 py-3">
-                    Image
+                    {t("image")}
                   </th>
                   <th scope="col" className="px-3 py-3">
-                    Name
+                    {t("name")}
                   </th>
                   <th scope="col" className="px-3 py-3">
-                    Price
+                    {t("price")}
                   </th>
                   <th scope="col" className="px-3 py-3">
-                    Category
+                    {t("category")}
                   </th>
                   <th scope="col" className="px-3 py-3">
-                    Stock
+                    {t("stock")}
                   </th>
                   <th scope="col" className="px-3 py-3">
-                    Status
+                    {t("status")}
                   </th>
                   <th scope="col" className="px-3 py-3">
-                    Actions
+                    {t("actions")}
                   </th>
                 </tr>
               </thead>
@@ -185,15 +189,15 @@ export default function AdminProductsList({
       )}
 
       {pendingDeleteProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 p-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl shadow-stone-900/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl shadow-black/20">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Confirm action
+                  {t("confirmAction")}
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold text-red-700">
-                  Delete product
+                  {t("deleteProduct")}
                 </h3>
               </div>
 
@@ -201,15 +205,14 @@ export default function AdminProductsList({
                 type="button"
                 onClick={() => setPendingDeleteId(null)}
                 className="rounded-full p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
-                aria-label="Close confirmation dialog"
+                aria-label={t("closeDialog")}
               >
                 <X size={16} />
               </button>
             </div>
 
             <p className="mt-4 text-sm leading-6 text-stone-600">
-              Are you sure you want to delete <span className="font-semibold text-stone-900">{pendingDeleteProduct.Name}</span>?
-              This action cannot be undone.
+              {t("deleteConfirm", { name: pendingDeleteProduct.Name })}
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -218,16 +221,16 @@ export default function AdminProductsList({
                 onClick={() => setPendingDeleteId(null)}
                 className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
               >
-                Cancel
+                {common("cancel")}
               </button>
 
               <button
                 type="button"
                 onClick={confirmDelete}
                 disabled={deletingId === pendingDeleteId}
-                className="rounded-full bg-red-700 e-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-blue-400"
+                className="rounded-full bg-[#B91C1C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#991B1B] disabled:cursor-not-allowed disabled:bg-blue-400"
               >
-                {deletingId === pendingDeleteId ? "Deleting..." : "Delete"}
+                {deletingId === pendingDeleteId ? t("deleting") : common("delete")}
               </button>
             </div>
           </div>
@@ -235,7 +238,7 @@ export default function AdminProductsList({
       )}
 
       {alertMessage && (
-        <div className="fixed right-4 top-4 z-[60] w-full max-w-sm rounded-xl border border-stone-200 bg-white p-4 shadow-xl shadow-stone-900/10">
+        <div className="fixed end-4 top-4 z-[60] w-full max-w-sm rounded-xl border border-stone-200 bg-white p-4 shadow-xl shadow-black/10">
           <div className="flex items-start gap-3">
             <div
               className={[
@@ -248,7 +251,7 @@ export default function AdminProductsList({
 
             <div className="flex-1">
               <p className="text-sm font-semibold text-stone-900">
-                {alertMessage.type === "success" ? "Success" : "Error"}
+                {alertMessage.type === "success" ? t("success") : t("error")}
               </p>
               <p className="mt-1 text-sm text-stone-600">
                 {alertMessage.text}
@@ -259,7 +262,7 @@ export default function AdminProductsList({
               type="button"
               onClick={() => setAlertMessage(null)}
               className="rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
-              aria-label="Dismiss alert"
+              aria-label={t("dismissAlert")}
             >
               <X size={14} />
             </button>
@@ -296,6 +299,8 @@ function DesktopProductRow({
   onEdit,
   onDelete,
 }: ProductItemProps) {
+  const locale = useLocale();
+  const categories = useTranslations("home");
   return (
     <tr className="group transition-colors hover:bg-stone-50/70">
       <td className="px-3 py-3">
@@ -312,17 +317,19 @@ function DesktopProductRow({
       </td>
 
       <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-stone-900">
-        ${product.Price.toLocaleString()}
+        {formatUSD(locale, product.Price)}
       </td>
 
       <td className="max-w-37.5 px-3 py-3">
         <span className="block truncate text-sm text-stone-600">
-          {product.Category || "-"}
+          {product.Category && categories.has(`categories.${product.Category}`)
+            ? categories(`categories.${product.Category}`)
+            : product.Category?.replaceAll("_", " ") || "-"}
         </span>
       </td>
 
       <td className="px-3 py-3 text-sm text-stone-600">
-        {typeof product.Stock === "number" ? product.Stock : "-"}
+        {typeof product.Stock === "number" ? new Intl.NumberFormat(locale).format(product.Stock) : "-"}
       </td>
 
       <td className="px-3 py-3">
@@ -350,6 +357,9 @@ function MobileProductCard({
   onEdit,
   onDelete,
 }: ProductItemProps) {
+  const locale = useLocale();
+  const categories = useTranslations("home");
+  const t = useTranslations("admin");
   return (
     <article className="rounded-xl border border-stone-200 p-3.5">
       <div className="flex gap-3">
@@ -366,7 +376,7 @@ function MobileProductCard({
               </h4>
 
               <p className="mt-1 text-sm font-medium text-stone-700">
-                ${product.Price.toLocaleString()}
+                {formatUSD(locale, product.Price)}
               </p>
             </div>
 
@@ -375,15 +385,17 @@ function MobileProductCard({
 
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <ProductMeta
-              label="Category"
-              value={product.Category || "-"}
+              label={t("category")}
+              value={product.Category && categories.has(`categories.${product.Category}`)
+                ? categories(`categories.${product.Category}`)
+                : product.Category?.replaceAll("_", " ") || "-"}
             />
 
             <ProductMeta
-              label="Stock"
+              label={t("stock")}
               value={
                 typeof product.Stock === "number"
-                  ? String(product.Stock)
+                  ? new Intl.NumberFormat(locale).format(product.Stock)
                   : "-"
               }
             />
@@ -444,6 +456,7 @@ function ProductStatus({
 }: {
   status: Product["Status"];
 }) {
+  const t = useTranslations("admin");
   if (!status) {
     return <span className="text-sm text-stone-400">-</span>;
   }
@@ -464,7 +477,11 @@ function ProductStatus({
           : "bg-stone-100 text-stone-600",
       ].join(" ")}
     >
-      {String(status)}
+      {normalizedStatus === "active"
+        ? t("active")
+        : normalizedStatus === "inactive"
+          ? t("inactive")
+          : String(status)}
     </span>
   );
 }
@@ -497,6 +514,7 @@ function ProductActions({
   onDelete: () => void;
   fullWidth?: boolean;
 }) {
+  const t = useTranslations("admin");
   return (
     <div
       className={`flex items-center gap-2 ${fullWidth ? "w-full" : ""
@@ -515,10 +533,10 @@ function ProductActions({
           "disabled:cursor-not-allowed disabled:opacity-50",
           fullWidth ? "flex-1" : "",
         ].join(" ")}
-        aria-label="Edit product"
+        aria-label={t("edit")}
       >
         <Edit aria-hidden="true" size={14} />
-        Edit
+        {t("edit")}
       </button>
 
       <button
@@ -534,7 +552,7 @@ function ProductActions({
           "disabled:cursor-not-allowed disabled:opacity-50",
           fullWidth ? "flex-1" : "",
         ].join(" ")}
-        aria-label="Delete product"
+        aria-label={t("deleteProduct")}
       >
         {isDeleting ? (
           <Loader2
@@ -546,21 +564,22 @@ function ProductActions({
           <Trash2 aria-hidden="true" size={14} />
         )}
 
-        {isDeleting ? "Deleting..." : "Delete"}
+        {isDeleting ? t("deleting") : t("deleteProduct")}
       </button>
     </div>
   );
 }
 
 function EmptyProductsState() {
+  const t = useTranslations("admin");
   return (
     <div className="mt-5 rounded-xl border border-dashed border-stone-200 px-4 py-10 text-center">
       <p className="text-sm font-medium text-stone-700">
-        No products found
+        {t("noProducts")}
       </p>
 
       <p className="mt-1 text-xs text-stone-500">
-        Products will appear here once they are added.
+        {t("emptyProductsHelp")}
       </p>
     </div>
   );

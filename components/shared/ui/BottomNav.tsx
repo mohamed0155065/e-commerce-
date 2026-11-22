@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { Home, LayoutGrid, ShoppingBag, User } from "lucide-react";
 
 import { useCartStore } from "@/featues/card/store/useCartStore";
@@ -10,19 +10,19 @@ import { useHydratedValue } from "@/store/useHydration";
 const ITEMS = [
   {
     href: "/",
-    label: "Home",
+    label: "home",
     icon: Home,
     match: (p: string) => p === "/",
   },
   {
     href: "/#products",
-    label: "Shop",
+    label: "shop",
     icon: LayoutGrid,
     match: (p: string) => p === "/",
   },
   {
     href: "/login",
-    label: "Account",
+    label: "account",
     icon: User,
     match: (p: string) => p.startsWith("/login"),
   },
@@ -30,13 +30,15 @@ const ITEMS = [
 
 export const BottomNav = () => {
   const pathname = usePathname();
+  const t = useTranslations("common");
+  const nav = useTranslations("nav");
 
   const totalItems = useCartStore((state) => state.getTotalItems());
   const safeTotalItems = useHydratedValue(totalItems, 0);
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={nav("primaryNavigation")}
       className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-stretch border-t border-stone-200 bg-white/95 backdrop-blur sm:hidden"
     >
       {ITEMS.map(({ href, label, icon: Icon, match }) => {
@@ -46,11 +48,11 @@ export const BottomNav = () => {
           <Link
             key={label}
             href={href}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${active ? "text-[#285943]" : "text-stone-500"
+            className={`flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${active ? "text-[var(--brand)]" : "text-stone-500"
               }`}
           >
             <Icon size={19} aria-hidden="true" />
-            {label}
+            {t(label)}
           </Link>
         );
       })}
@@ -61,10 +63,10 @@ export const BottomNav = () => {
       >
         <ShoppingBag size={19} aria-hidden="true" />
 
-        Cart
+        {nav("cart")}
 
         {safeTotalItems > 0 && (
-          <span className="absolute right-6 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#285943] px-1 text-[9px] font-bold text-white">
+          <span className="absolute end-6 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brand)] px-1 text-[9px] font-bold text-white">
             {safeTotalItems > 9 ? "9+" : safeTotalItems}
           </span>
         )}

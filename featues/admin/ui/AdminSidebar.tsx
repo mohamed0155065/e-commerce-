@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import {
   LayoutDashboard,
@@ -19,17 +19,17 @@ import { supabase } from "@/lib/supabase";
 const NAV_ITEMS = [
   {
     href: "/admin/dashboard",
-    label: "Overview",
+    label: "dashboard",
     icon: LayoutDashboard,
   },
   {
     href: "/admin/dashboard/orders",
-    label: "Orders",
+    label: "orders",
     icon: ClipboardList,
   },
   {
     href: "/admin/dashboard/products",
-    label: "Products",
+    label: "products",
     icon: Boxes,
   },
 ] as const;
@@ -49,6 +49,7 @@ export default function AdminSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("admin");
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -82,7 +83,7 @@ export default function AdminSidebar({
   };
 
   const navigation = (showLabels: boolean) => (
-    <nav className="space-y-1 px-3" aria-label="Admin navigation">
+    <nav className="space-y-1 px-3" aria-label={t("navigation")}>
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         /**
          * Exact matching is required for Overview.
@@ -90,6 +91,7 @@ export default function AdminSidebar({
          * Otherwise "/admin/dashboard/orders" would also make Overview appear
          * active because "/admin/dashboard" is its prefix.
          */
+        const labelText = t(label);
         const isActive =
           href === "/admin/dashboard"
             ? pathname === href
@@ -101,7 +103,7 @@ export default function AdminSidebar({
             href={href}
             onClick={onCloseMobile}
             aria-current={isActive ? "page" : undefined}
-            title={showLabels ? undefined : label}
+            title={showLabels ? undefined : labelText}
             className={[
               "flex items-center gap-3 rounded-xl px-3 py-2.5",
               "text-sm font-medium",
@@ -115,7 +117,7 @@ export default function AdminSidebar({
               .join(" ")}
           >
             <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
-            {showLabels && label}
+            {showLabels && labelText}
           </Link>
         );
       })}
@@ -128,17 +130,17 @@ export default function AdminSidebar({
         !showLabels ? "justify-center px-0" : ""
       }`}
     >
-      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[#14532d]">
+      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[var(--brand)]">
         <ShoppingBag size={18} strokeWidth={2} aria-hidden="true" />
       </div>
 
       {showLabels && (
         <div className="min-w-0">
           <p className="truncate text-sm font-bold tracking-tight text-white">
-            Marketly Admin
+            {t("title")}
           </p>
           <p className="truncate text-xs text-emerald-100/60">
-            Store management
+            {t("storeManagement")}
           </p>
         </div>
       )}
@@ -149,7 +151,7 @@ export default function AdminSidebar({
     <div className="mt-auto border-t border-white/10 px-4 pb-5 pt-4">
       <div className={`flex items-center gap-3 ${!showLabels ? "justify-center" : ""}`}>
         <div
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-700 text-sm font-semibold text-white"
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-sm font-semibold text-white"
           aria-hidden="true"
         >
           {(userEmail?.[0] ?? "A").toUpperCase()}
@@ -161,9 +163,9 @@ export default function AdminSidebar({
               className="truncate text-xs font-medium text-white"
               title={userEmail ?? undefined}
             >
-              {userEmail ?? "Admin"}
+              {userEmail ?? t("admin")}
             </p>
-            <p className="text-[11px] text-emerald-100/60">Store Owner</p>
+            <p className="text-[11px] text-emerald-100/60">{t("storeOwner")}</p>
           </div>
         )}
       </div>
@@ -172,13 +174,13 @@ export default function AdminSidebar({
         type="button"
         onClick={handleLogout}
         disabled={isLoggingOut}
-        title={showLabels ? undefined : "Log out"}
+        title={showLabels ? undefined : t("logout")}
         className={`mt-4 flex items-center gap-2 text-sm font-medium text-red-300 transition-colors hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50 ${
           !showLabels ? "justify-center" : ""
         }`}
       >
         <LogOut size={16} aria-hidden="true" />
-        {showLabels && (isLoggingOut ? "Signing out…" : "Log out")}
+        {showLabels && (isLoggingOut ? t("signingOut") : t("logout"))}
       </button>
     </div>
   );
@@ -196,24 +198,24 @@ export default function AdminSidebar({
           className="fixed inset-0 z-50 lg:hidden"
           role="dialog"
           aria-modal="true"
-          aria-label="Admin navigation"
+          aria-label={t("navigation")}
         >
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("closeNavigation")}
             className="absolute inset-0 bg-black/30"
             onClick={onCloseMobile}
           />
 
-          <aside className="absolute inset-y-0 left-0 flex w-[280px] flex-col bg-gradient-to-b from-[#0d3d21#0d3d21] to-[#123a28] py-2 shadow-xl">
+          <aside className="absolute inset-y-0 start-0 flex w-[280px] flex-col bg-gradient-to-b from-[#09090B] to-[var(--surface)] py-2 shadow-xl">
             <div className="flex items-center justify-between">
               {logoBlock(true)}
 
               <button
                 type="button"
                 onClick={onCloseMobile}
-                aria-label="Close navigation"
-                className="mr-2 rounded-lg p-2 text-emerald-100/70 hover:bg-white/10 hover:text-white"
+                aria-label={t("closeNavigation")}
+                className="me-2 rounded-lg p-2 text-emerald-100/70 hover:bg-white/10 hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -233,7 +235,7 @@ export default function AdminSidebar({
           thrashing from JS-driven resize) so collapsing feels instant.
       ------------------------------------------------------------------- */}
       <aside
-        className={`sticky top-0 hidden h-screen shrink-0 flex-col bg-gradient-to-b from-[#0d3d21] to-[#123a28] transition-[width] duration-200 lg:flex ${
+        className={`sticky top-0 hidden h-screen shrink-0 flex-col bg-gradient-to-b from-[#09090B] to-[var(--surface)] transition-[width] duration-200 lg:flex ${
           collapsed ? "w-[84px]" : "w-[280px]"
         }`}
       >
@@ -244,10 +246,10 @@ export default function AdminSidebar({
             <button
               type="button"
               onClick={onToggleCollapsed}
-              aria-label="Collapse sidebar"
-              className="mr-3 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-emerald-100/80 hover:bg-white/20 hover:text-white"
+              aria-label={t("collapseSidebar")}
+              className="me-3 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-emerald-100/80 hover:bg-white/20 hover:text-white"
             >
-              <ChevronLeft size={15} />
+              <ChevronLeft size={15} className="rtl-flip" />
             </button>
           )}
         </div>
@@ -256,10 +258,10 @@ export default function AdminSidebar({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            aria-label="Expand sidebar"
+            aria-label={t("expandSidebar")}
             className="mx-auto mb-4 grid size-7 place-items-center rounded-lg bg-white/10 text-emerald-100/80 hover:bg-white/20 hover:text-white"
           >
-            <ChevronLeft size={15} className="rotate-180" />
+            <ChevronLeft size={15} className="rotate-180 rtl-flip" />
           </button>
         )}
 

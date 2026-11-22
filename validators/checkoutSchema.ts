@@ -5,26 +5,26 @@ import { z } from "zod";
  */
 export const checkoutSchema = z.object({
     // Full name: must be at least 3 characters long
-    fullName: z.string().min(3, "Full name must be at least 3 characters long"),
+    fullName: z.string().min(3, "fullNameMin"),
 
     // Email: must be a valid email format
-    email: z.string().email("Please enter a valid email address"),
+    email: z.string().email("invalidEmail"),
 
     // Address: detailed address is required, minimum 10 characters
-    address: z.string().min(10, "Detailed address is required (minimum 10 characters)"),
+    address: z.string().min(10, "addressMin"),
 
     // City: must be 2-50 characters, only allows Arabic letters, Latin letters, spaces, hyphens, commas, and periods
     city: z
         .string()
         .trim() // Remove leading/trailing spaces
-        .min(2, "City is required")
-        .max(50, "City name is too long")
+        .min(2, "cityRequired")
+        .max(50, "cityTooLong")
         .refine((val) => /^[\u0600-\u06FFA-Za-z\s\-,.]+$/.test(val), {
-            message: "City contains invalid characters",
+            message: "cityInvalid",
         }),
 
     // Phone: must be exactly 11 digits
-    phone: z.string().regex(/^[0-9]{11}$/, "Phone number must be exactly 11 digits"),
+    phone: z.string().regex(/^[0-9]{11}$/, "phoneLength"),
 });
 
 // Type inference for the checkout form inputs

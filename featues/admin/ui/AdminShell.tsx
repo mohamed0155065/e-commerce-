@@ -31,7 +31,7 @@ export default function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4] lg:flex">
+    <div className="min-h-screen bg-[var(--canvas)] lg:flex">
       <AdminSidebar
         userEmail={userEmail}
         collapsed={collapsed}

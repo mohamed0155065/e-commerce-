@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 import { supabaseServer } from "@/lib/supabaseServer";
 
@@ -113,6 +114,8 @@ export async function addProductAction(
     _prevState: ProductActionState | null,
     formData: FormData
 ): Promise<ProductActionState> {
+    const t = await getTranslations("admin");
+
     try {
         await assertAdmin();
 
@@ -123,7 +126,7 @@ export async function addProductAction(
         if (!result.success) {
             return {
                 success: false,
-                message: result.error.issues[0].message,
+                message: t("productSaveError"),
             };
         }
 
@@ -132,7 +135,7 @@ export async function addProductAction(
         if (!(image instanceof File) || image.size === 0) {
             return {
                 success: false,
-                message: "Image is required",
+                message: t("imageRequired"),
             };
         }
 
@@ -146,7 +149,7 @@ export async function addProductAction(
         if (typeof creatableProductService.create !== "function") {
             return {
                 success: false,
-                message: "Create product is not supported by this service",
+                message: t("productSaveError"),
             };
         }
 
@@ -160,7 +163,7 @@ export async function addProductAction(
 
         return {
             success: true,
-            message: "Product published successfully!",
+            message: t("productPublished"),
             product,
         };
     } catch (error: unknown) {
@@ -168,10 +171,7 @@ export async function addProductAction(
 
         return {
             success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unexpected error occurred",
+            message: t("productSaveError"),
         };
     }
 }
@@ -191,6 +191,8 @@ export async function updateProductAction(
     _prevState: ProductActionState | null,
     formData: FormData
 ): Promise<ProductActionState> {
+    const t = await getTranslations("admin");
+
     try {
         await assertAdmin();
 
@@ -199,7 +201,7 @@ export async function updateProductAction(
         if (typeof id !== "string" || !id.trim()) {
             return {
                 success: false,
-                message: "Product ID is required",
+                message: t("productIdRequired"),
             };
         }
 
@@ -210,7 +212,7 @@ export async function updateProductAction(
         if (!result.success) {
             return {
                 success: false,
-                message: result.error.issues[0].message,
+                message: t("productSaveError"),
             };
         }
 
@@ -232,7 +234,7 @@ export async function updateProductAction(
         if (typeof updatableProductService.update !== "function") {
             return {
                 success: false,
-                message: "Update product is not supported by this service",
+                message: t("productSaveError"),
             };
         }
 
@@ -247,7 +249,7 @@ export async function updateProductAction(
 
         return {
             success: true,
-            message: "Product updated successfully!",
+            message: t("updatedProduct"),
             product,
         };
     } catch (error: unknown) {
@@ -255,10 +257,7 @@ export async function updateProductAction(
 
         return {
             success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Unexpected error occurred",
+            message: t("productSaveError"),
         };
     }
 }

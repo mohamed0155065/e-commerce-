@@ -10,6 +10,7 @@
  */
 
 import type { order_status} from "../../types/orders.types";
+import { useTranslations } from "next-intl";
 
 const STATUS_STYLES: Record< order_status, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -19,17 +20,10 @@ const STATUS_STYLES: Record< order_status, string> = {
   cancelled: "bg-red-50 text-red-700 border-red-200",
 };
 
-const STATUS_LABELS: Record< order_status, string> = {
-  pending: "Pending",
-  processing: "Processing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
 export default function OrderStatusBadge({ status }: { status: order_status }) {
+  const t = useTranslations("status");
   const style = STATUS_STYLES[status] ?? STATUS_STYLES.pending;
-  const label = STATUS_LABELS[status] ?? status;
+  const label = t.has(status) ? t(status) : status;
 
   return (
     <span
