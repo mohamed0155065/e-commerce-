@@ -87,7 +87,7 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               <ShoppingBag className="mx-auto text-stone-400" size={30} />
               <h2 className="mt-4 font-semibold">{t("emptyTitle")}</h2>
               <p className="mt-2 text-sm leading-6 text-stone-500">{t("emptyDescription")}</p>
-              <Link onClick={onClose} href="/" className="mt-6 inline-block bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-hover)]">{t("browse")}</Link>
+              <Link onClick={onClose} href="/" prefetch={false} scroll={false} className="mt-6 inline-block bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-hover)]">{t("browse")}</Link>
             </div>
           </div>
         ) : (
@@ -124,7 +124,7 @@ export const CartDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <span>{common("total")}</span>
                 <span>{formatUSD(locale, total)}</span>
               </div>
-              <Link onClick={onClose} href="/checkout" className="mt-5 flex items-center justify-center bg-[var(--brand)] px-4 py-3.5 text-sm font-semibold text-white hover:bg-[var(--brand-hover)]">{t("checkout")}</Link>
+              <Link onClick={onClose} href="/checkout" prefetch={false} scroll={false} className="mt-5 flex items-center justify-center bg-[var(--brand)] px-4 py-3.5 text-sm font-semibold text-white hover:bg-[var(--brand-hover)]">{t("checkout")}</Link>
             </footer>
           </>
         )}

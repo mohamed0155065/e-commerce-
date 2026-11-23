@@ -34,6 +34,7 @@ export default function WishlistPage() {
           </p>
           <Link
             href="/"
+            prefetch={false}
             className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand)] hover:underline"
           >
             <ArrowLeft size={15} />

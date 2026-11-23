@@ -43,6 +43,7 @@ const ProductCardImpl = ({ product }: { product: Product }) => {
       <div className="relative">
         <Link
           href={`/product/${product.id}`}
+          prefetch={false}
           className="block overflow-hidden rounded-lg bg-[var(--canvas)]"
           aria-label={`${product.Name}`}
         >
@@ -91,7 +92,7 @@ const ProductCardImpl = ({ product }: { product: Product }) => {
           </p>
         )}
 
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.id}`} prefetch={false}>
           <h3 className="mt-1 truncate text-sm font-semibold text-stone-900 hover:text-[var(--brand)]">
             {product.Name}
           </h3>

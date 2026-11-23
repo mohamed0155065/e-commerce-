@@ -16,6 +16,7 @@
  */
 import { Suspense } from "react";
 import { Navbar } from "@/components/shared/ui/Navbar";
+import { BottomNav } from "@/components/shared/ui/BottomNav";
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,6 +25,7 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
       </Suspense>
       {children}
+      <BottomNav />
     </>
   );
 }

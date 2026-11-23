@@ -17,8 +17,11 @@ export const SearchBar = () => {
     } else {
       params.delete("query");
     }
-    router.replace(`${pathname}?${params.toString()}`);
-  }, 300);
+    const nextQuery = params.toString();
+    if (nextQuery === searchParams.toString()) return;
+
+    router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ""}`, { scroll: false });
+  }, 120, { maxWait: 300 });
 
   return (
     <label className="relative block w-full">

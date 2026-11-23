@@ -10,11 +10,13 @@ import { SearchBar } from "./SearchBar";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { supabase } from "@/lib/supabase";
 import { useHydratedValue, useHydration } from "@/store/useHydration";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Link, useRouter } from "@/i18n/navigation";
 
 export const Navbar = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const userEmail = useAuthStore((state) => state.userEmail);
+  const setUserEmail = useAuthStore((state) => state.setUserEmail);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -37,7 +39,7 @@ export const Navbar = () => {
     });
 
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, [setUserEmail]);
 
   // Close the account dropdown on outside click / Escape.
   useEffect(() => {
@@ -81,9 +83,10 @@ export const Navbar = () => {
       </div>
 
       <div className="border-b border-stone-200">
-        <div className="page-shell flex h-16 items-center gap-6">
+        <div className="page-shell flex h-[104px] flex-wrap items-center gap-2 py-2 sm:h-16 sm:flex-nowrap sm:gap-6 sm:py-0">
           <Link
             href="/"
+            prefetch={false}
             className="shrink-0 text-xl font-bold tracking-[-.07em] text-stone-900"
             aria-label={`Marketly ${common("home")}`}
           >
@@ -92,14 +95,15 @@ export const Navbar = () => {
           </Link>
 
 
-          <div className="mx-auto hidden max-w-md flex-1 sm:block">
+          <div className="order-3 mx-0 w-full flex-none sm:order-none sm:mx-auto sm:max-w-md sm:flex-1">
             <SearchBar />
           </div>
 
-          <div className="ms-auto flex shrink-0 items-center gap-5 sm:ms-0">
+          <div className="order-2 ms-auto flex shrink-0 items-center gap-5 sm:order-none sm:ms-0">
             <LocaleSwitcher />
             <Link
               href="/wishlist"
+              prefetch={false}
               className="relative hidden items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950 sm:flex"
               aria-label={mounted ? t("openWishlist", { count: safeTotalWishlisted }) : t("wishlist")}
             >
@@ -117,7 +121,7 @@ export const Navbar = () => {
             <button
               type="button"
               onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950"
+              className="relative hidden items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950 sm:flex"
               aria-label={cartLabel}
               aria-haspopup="dialog"
               aria-expanded={isCartOpen}
@@ -134,7 +138,7 @@ export const Navbar = () => {
             </button>
 
             {mounted && userEmail ? (
-              <div className="relative" ref={accountRef}>
+              <div className="relative hidden sm:block" ref={accountRef}>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
@@ -165,6 +169,7 @@ export const Navbar = () => {
 
                     <Link
                       href="/orders"
+                      prefetch={false}
                       role="menuitem"
                       onClick={() => setIsAccountOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 transition-colors hover:bg-stone-50"
@@ -190,7 +195,8 @@ export const Navbar = () => {
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950"
+                prefetch={false}
+                className="hidden items-center gap-2 text-sm font-medium text-stone-700 hover:text-stone-950 sm:flex"
                 aria-label={t("signIn")}
               >
                 <User size={19} aria-hidden="true" />
@@ -200,9 +206,6 @@ export const Navbar = () => {
           </div>
         </div>
 
-        <div className="page-shell pb-3 sm:hidden">
-          <SearchBar />
-        </div>
       </div>
 
       <CartDrawer

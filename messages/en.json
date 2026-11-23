@@ -4,7 +4,7 @@
     "description": "A thoughtful selection of products for daily life."
   },
   "nav": {
-    "shippingBanner": "Free shipping on orders over $50",
+    "shippingBanner": "Free shipping on orders over 50 EGP",
     "searchLabel": "Search products",
     "searchPlaceholder": "Search laptops, phones, accessories...",
     "wishlist": "Wishlist",
@@ -32,6 +32,8 @@
     "genuine": "Genuine products",
     "support": "24/7 support",
     "bestSellers": "Best Sellers",
+    "allProducts": "All Products",
+    "scrollDown": "Scroll down to see the products",
     "resultsFor": "Results for \"{query}\"",
     "unableLoad": "Unable to load products",
     "loadError": "Please check your connection and try again.",
@@ -318,7 +320,7 @@
     "publishProduct": "Publish product",
     "publishProductDescription": "Add a new product to your store inventory.",
     "productTitle": "Product title",
-    "price": "Price (USD)",
+    "price": "Price (EGP)",
     "category": "Category",
     "stockQuantity": "Stock quantity",
     "active": "Active",

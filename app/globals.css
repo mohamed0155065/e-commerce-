@@ -11,8 +11,8 @@
   --line: #27272a;
   --line-soft: #27272a;
 
-  --brand: #8b5cf6;
-  --brand-hover: #7c3aed;
+  --brand: #3b82f6;
+  --brand-hover: #2563eb;
 
   /* Secondary Accent */
   --accent: #06b6d4;
@@ -48,21 +48,16 @@
   --color-green-800: #a5f3fc;
   --color-green-900: #cffafe;
 
-  --color-emerald-50: #1f1633;
-  --color-emerald-100: #2e2050;
-  --color-emerald-200: #4c1d95;
-  --color-emerald-400: #a78bfa;
+  --color-emerald-50: #172554;
+  --color-emerald-100: #1e3a8a;
+  --color-emerald-200: #1e40af;
+  --color-emerald-400: #60a5fa;
   --color-emerald-500: var(--brand);
   --color-emerald-600: var(--brand-hover);
-  --color-emerald-700: #c4b5fd;
-  --color-emerald-800: #ddd6fe;
+  --color-emerald-700: #93c5fd;
+  --color-emerald-800: #bfdbfe;
 
-  --color-violet-50: #1f1633;
-  --color-violet-200: #4c1d95;
-  --color-violet-400: #a78bfa;
-  --color-violet-700: #c4b5fd;
-
-  --color-indigo-50: #1f1633;
+  --color-indigo-50: #172554;
   --color-indigo-500: var(--brand);
   --color-indigo-600: var(--brand-hover);
 
@@ -180,6 +175,21 @@ a {
 .page-shell {
   width: min(100% - 2rem, 76rem);
   margin-inline: auto;
+}
+
+@media (max-width: 639px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .page-shell {
+    width: calc(100% - 1.5rem);
+  }
+
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 .eyebrow {

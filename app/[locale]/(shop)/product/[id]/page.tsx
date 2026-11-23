@@ -48,6 +48,7 @@ export default async function ProductPage({
         <div className="page-shell flex h-9 items-center gap-2 overflow-x-auto text-xs text-stone-500">
           <Link
             href="/"
+            prefetch={false}
             className="shrink-0 whitespace-nowrap transition-colors hover:text-[var(--brand)]"
           >
             {common("shop")}
@@ -58,6 +59,7 @@ export default async function ProductPage({
               <ChevronRight size={14} className="rtl-flip shrink-0 text-stone-300" aria-hidden="true" />
               <Link
                 href={`/?category=${encodeURIComponent(product.Category)}`}
+                prefetch={false}
                 className="shrink-0 whitespace-nowrap capitalize transition-colors hover:text-[var(--brand)]"
               >
                 {categories.has(`categories.${product.Category}`)

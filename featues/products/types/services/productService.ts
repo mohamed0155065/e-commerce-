@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabaseServer";
+import { cache } from "react";
 import type { Product } from "../products.types";
 
 const TABLE_NAME = "product";
@@ -52,11 +53,11 @@ const uploadImageToStorage = async (file: File) => {
 };
 
 export const productService = {
-    async getAll(
+    getAll: cache(async (
         search?: string,
         category?: string,
         includeInactive = false
-    ): Promise<Product[]> {
+    ): Promise<Product[]> => {
         const supabase = await supabaseServer();
 
         let query = supabase
@@ -81,7 +82,9 @@ export const productService = {
             query = query.eq("Category", normalizedCategory);
         }
 
-        const { data, error } = await query.returns<Product[]>();
+        const { data, error } = await query
+            .order("created_at", { ascending: false })
+            .returns<Product[]>();
 
         if (error) {
             console.error("PRODUCTS ERROR:", error);
@@ -89,7 +92,7 @@ export const productService = {
         }
 
         return data ?? [];
-    },
+    }),
 
     async getById(id: string): Promise<Product | null> {
         const supabase = await supabaseServer();

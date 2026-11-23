@@ -16,14 +16,14 @@ export default function SuccessPage() {
       origin: {
         y: 0.55,
       },
-      colors: ["#8B5CF6", "#06B6D4", "#111114"],
+      colors: ["#3B82F6", "#06B6D4", "#111114"],
     });
   }, []);
 
   return (
     <main className="page-shell grid min-h-[calc(100vh-4rem)] place-items-center text-center">
       <section className="max-w-md">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#1F1633] text-[var(--accent)]">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#172554] text-[var(--accent)]">
           <Check size={28} />
         </div>
 

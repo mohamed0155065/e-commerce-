@@ -126,7 +126,7 @@ export default function SalesChart({
                 formatter={(value) => [
                   new Intl.NumberFormat(locale, {
                     style: "currency",
-                    currency: "USD",
+                    currency: "EGP",
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2,
                   }).format(Number(value)),
